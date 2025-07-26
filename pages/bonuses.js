@@ -7,14 +7,14 @@ export default function Bonuses() {
             id: 'clash',
             name: 'Clash.gg',
             logo: '/clashlogo/clashgg.webp',
-            url: 'https://clash.gg',
+            url: 'http://clash.gg/r/Zynko',
             features: ['3 Free Cases', 'Rakeback', '5% Deposit Bonus'],
         },
         {
             id: 'rain',
             name: 'Rain.gg',
             logo: '/rainlogo/raingg.webp',
-            url: 'https://rain.gg',
+            url: 'https://rain.gg/r/Zynko',
             features: ['Free Coins', 'Deposit Bonus', 'Weekly Leaderboard'],
         },
     ];
