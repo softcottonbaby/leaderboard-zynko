@@ -2,6 +2,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function Bonuses() {
+    // 🔴 Flags to show/hide each bonus
+    const showBonuses = {
+        clash: false, // set to true to show Clash.gg bonus
+        rain: true,   // set to true to show Rain.gg bonus
+    };
+
     const bonusSites = [
         {
             id: 'clash',
@@ -39,11 +45,7 @@ export default function Bonuses() {
                     <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
                         <img src="/logonavbar/zincoZ.webp" alt="Z Logo" className="h-8 md:h-10 select-none pointer-events-none" />
                         <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
-                            {[
-                                { href: '/', label: 'Home' },
-                                { href: '/leaderboard', label: 'Leaderboards' },
-                                { href: '/bonuses', label: 'Bonuses' },
-                            ].map((item) => (
+                            {[{ href: '/', label: 'Home' }, { href: '/leaderboard', label: 'Leaderboards' }, { href: '/bonuses', label: 'Bonuses' }].map((item) => (
                                 <Link key={item.href} href={item.href} className="relative group">
                                     <span className="text-white hover:text-red-400 transition">
                                         {item.label}
@@ -65,56 +67,56 @@ export default function Bonuses() {
                     </p>
 
                     <div className="flex flex-wrap justify-center gap-8">
-                        {bonusSites.map((site) => (
-                            <div
-                                key={site.id}
-                                className="group bg-[#111] rounded-xl p-6 w-80 transform transition duration-300 hover:scale-105 shadow hover:shadow-red-500/30 border border-white/10"
-                            >
-                                <div className="h-16 flex items-center justify-center mb-4">
-                                    <img
-                                        src={site.logo}
-                                        alt={site.name}
-                                        className={`transition-transform duration-300 ease-in-out group-hover:scale-110 select-none pointer-events-none ${site.id === 'rain' ? 'h-12 md:h-[52px]' : 'h-10 md:h-12'
-                                            }`}
-                                    />
-                                </div>
-
-
-                                <p className="text-xs uppercase text-white/50 mb-4">Casino</p>
-
-                                <ul className="text-sm mb-4 space-y-2">
-                                    {site.features.map((feature, i) => (
-                                        <li key={i} className="flex items-center gap-2">
-                                            <span className="text-purple-400">✔</span> {feature}
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <p className="text-xs text-white/60 mb-1">CODE</p>
-
-                                <div className="flex flex-col items-center gap-1 mb-4">
-                                    {copiedState[site.id] && <p className="text-red-500 text-xs -mb-1">Copied!</p>}
-                                    <div className="flex items-center justify-between bg-zinc-800 px-3 py-2 rounded-md w-full">
-                                        <span className="font-bold">Zynko</span>
-                                        <button
-                                            onClick={() => copyCode(site.id)}
-                                            className="text-sm text-white/60 hover:text-white"
-                                        >
-                                            📋
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <a
-                                    href={site.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-full bg-red-600 text-white text-sm font-bold py-2 rounded-lg text-center transition shadow-[0_0_12px_rgba(255,50,50,0.5)] hover:shadow-[0_0_20px_4px_rgba(255,50,50,0.6)] hover:scale-[1.03]"
+                        {bonusSites
+                            .filter((site) => showBonuses[site.id]) // ✅ filter based on flag
+                            .map((site) => (
+                                <div
+                                    key={site.id}
+                                    className="group bg-[#111] rounded-xl p-6 w-80 transform transition duration-300 hover:scale-105 shadow hover:shadow-red-500/30 border border-white/10"
                                 >
-                                    CLAIM BONUS
-                                </a>
-                            </div>
-                        ))}
+                                    <div className="h-16 flex items-center justify-center mb-4">
+                                        <img
+                                            src={site.logo}
+                                            alt={site.name}
+                                            className={`transition-transform duration-300 ease-in-out group-hover:scale-110 select-none pointer-events-none ${site.id === 'rain' ? 'h-12 md:h-[52px]' : 'h-10 md:h-12'}`}
+                                        />
+                                    </div>
+
+                                    <p className="text-xs uppercase text-white/50 mb-4">Casino</p>
+
+                                    <ul className="text-sm mb-4 space-y-2">
+                                        {site.features.map((feature, i) => (
+                                            <li key={i} className="flex items-center gap-2">
+                                                <span className="text-purple-400">✔</span> {feature}
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    <p className="text-xs text-white/60 mb-1">CODE</p>
+
+                                    <div className="flex flex-col items-center gap-1 mb-4">
+                                        {copiedState[site.id] && <p className="text-red-500 text-xs -mb-1">Copied!</p>}
+                                        <div className="flex items-center justify-between bg-zinc-800 px-3 py-2 rounded-md w-full">
+                                            <span className="font-bold">Zynko</span>
+                                            <button
+                                                onClick={() => copyCode(site.id)}
+                                                className="text-sm text-white/60 hover:text-white"
+                                            >
+                                                📋
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <a
+                                        href={site.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block w-full bg-red-600 text-white text-sm font-bold py-2 rounded-lg text-center transition shadow-[0_0_12px_rgba(255,50,50,0.5)] hover:shadow-[0_0_20px_4px_rgba(255,50,50,0.6)] hover:scale-[1.03]"
+                                    >
+                                        CLAIM BONUS
+                                    </a>
+                                </div>
+                            ))}
                     </div>
                 </section>
             </main>

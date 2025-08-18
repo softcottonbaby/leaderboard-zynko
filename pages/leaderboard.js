@@ -8,12 +8,38 @@ export default function Leaderboard() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isEnded, setIsEnded] = useState(false);
 
+  // 🔴 Toggle Clash.GG availability here
+  const clashEnabled = false;
+
+  // 🟡 Manually configurable prizes for Rain.GG
+  const manualRainPrizes = {
+    1: 280,
+    2: 180,
+    3: 100,
+    4: 65,
+    5: 40,
+    6: 25,
+  };
+
   useEffect(() => {
     async function fetchRain() {
       try {
         const res = await fetch('https://www.betzynko.com/api/leaderboard/raingg');
         const data = await res.json();
-        setRainPlayers(data.players || []);
+        let players = data.players || [];
+
+        // ✅ Apply manual prizes for Rain.GG
+        players = players.map((p) => {
+          if (manualRainPrizes[p.rank]) {
+            return {
+              ...p,
+              reward: `${manualRainPrizes[p.rank]} Coins`,
+            };
+          }
+          return p;
+        });
+
+        setRainPlayers(players);
       } catch (err) {
         console.error('Error fetching RAIN.GG leaderboard:', err);
       }
@@ -30,14 +56,16 @@ export default function Leaderboard() {
     }
 
     fetchRain();
-    fetchClash();
-  }, []);
+    if (clashEnabled) {
+      fetchClash(); // ✅ only runs if enabled
+    }
+  }, [clashEnabled]);
 
   useEffect(() => {
     let endDate =
       activeTab === 'rain'
-        ? new Date('2025-07-27T23:59:59Z')
-        : new Date('2025-07-28T23:59:59Z');
+        ? new Date('2025-08-24T23:59:59Z')
+        : new Date('2025-08-24T23:59:59Z');
 
     const interval = setInterval(() => {
       const now = new Date();
@@ -88,14 +116,41 @@ export default function Leaderboard() {
 
         <div className="flex justify-center mb-10 mt-4">
           <div className="flex bg-[#1c1c1c] rounded-full p-1 shadow-inner gap-2">
-            <button onClick={() => setActiveTab('rain')} className={`px-5 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 ${activeTab === 'rain' ? 'bg-[#2e2e2e] text-white' : 'text-white/70 hover:text-white'}`}>
+            {/* RAIN tab */}
+            <button
+              onClick={() => setActiveTab('rain')}
+              className={`px-5 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 ${
+                activeTab === 'rain'
+                  ? 'bg-[#2e2e2e] text-white'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
               <img src="rain/raingg-icon.webp" alt="rain" className="w-4 h-4 select-none pointer-events-none" />
               RAIN.GG
             </button>
-            <button onClick={() => setActiveTab('clash')} className={`px-5 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 ${activeTab === 'clash' ? 'bg-[#2e2e2e] text-white' : 'text-white/70 hover:text-white'}`}>
-              <img src="/clash/clashcoin.webp" alt="clash" className="w-4 h-4 select-none pointer-events-none" />
-              CLASH.GG
-            </button>
+
+            {/* CLASH tab (toggle enabled/disabled) */}
+            {clashEnabled ? (
+              <button
+                onClick={() => setActiveTab('clash')}
+                className={`px-5 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 ${
+                  activeTab === 'clash'
+                    ? 'bg-[#2e2e2e] text-white'
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                <img src="/clash/clashcoin.webp" alt="clash" className="w-4 h-4 select-none pointer-events-none" />
+                CLASH.GG
+              </button>
+            ) : (
+              <button
+                disabled
+                className="px-5 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 text-white/40 cursor-not-allowed opacity-50"
+              >
+                <img src="/clash/clashcoin.webp" alt="clash" className="w-4 h-4 select-none pointer-events-none" />
+                CLASH.GG
+              </button>
+            )}
           </div>
         </div>
 
@@ -105,7 +160,6 @@ export default function Leaderboard() {
             <span>
               <span className="text-yellow-400">{activeTab.toUpperCase()}</span> 500 {activeTab === 'clash' ? 'GEMS' : 'COINS'} WEEKLY
             </span>
-
             <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none" />
           </h2>
 
@@ -113,7 +167,11 @@ export default function Leaderboard() {
 
           <div className="flex justify-center gap-4 mb-6 flex-wrap">
             {[1, 0, 2].map((i) => players[i] && (
-              <div key={i} className={`bg-[#111] rounded-xl p-5 w-36 sm:w-48 ${i === 0 ? 'animate-pulse-slow hover:scale-110 border border-yellow-500 scale-105 hover:shadow-yellow-400/30' : 'hover:scale-105'} transition duration-300 hover:shadow-lg`}>
+              <div key={i} className={`bg-[#111] rounded-xl p-5 w-36 sm:w-48 ${
+                i === 0
+                  ? 'animate-pulse-slow hover:scale-110 border border-yellow-500 scale-105 hover:shadow-yellow-400/30'
+                  : 'hover:scale-105'
+              } transition duration-300 hover:shadow-lg`}>
                 <p className="text-white text-sm font-bold mb-1">#{players[i].rank}</p>
                 <img src={players[i].profilePicture} alt={players[i].username} className="rounded-full w-16 h-16 mx-auto mb-2 object-cover select-none pointer-events-none" />
                 <p className="text-sm font-semibold mb-1">{players[i].username}</p>
@@ -143,7 +201,7 @@ export default function Leaderboard() {
           ) : (
             <div className="bg-red-800/20 text-red-400 border border-red-600 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto">
               <p className="font-bold">LEADERBOARD CONCLUDED</p>
-              <p className="text-xs text-white/70">Check our discord for your next chance to win!</p>
+              <p className="text-xs text-white/70">Check the discord for your next chance to win!</p>
             </div>
           )}
 

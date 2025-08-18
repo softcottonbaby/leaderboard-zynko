@@ -6,29 +6,24 @@ export default function Home() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchVideos() {
-      try {
-        const uploadsRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=UC3KcZjlAVHnDbw6awqaepPg&key=AIzaSyAMy_qy_BgC9mBwaue_8stdcvrTd6rdm1g`
-        );
-        const uploadsData = await uploadsRes.json();
-        const uploadPlaylistId = uploadsData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-
-        if (!uploadPlaylistId) throw new Error('Upload playlist not found.');
-
-        const videosRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadPlaylistId}&maxResults=6&key=AIzaSyAMy_qy_BgC9mBwaue_8stdcvrTd6rdm1g`
-        );
-        const videosData = await videosRes.json();
-        setVideos(videosData.items || []);
-      } catch (err) {
-        setError(err.message);
+  async function fetchVideos() {
+    try {
+      const res = await fetch('/api/youtube');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setVideos(data);
+        setError(null);
+      } else {
         setVideos([]);
+        setError(data?.error || 'Failed to load videos.');
       }
+    } catch (err) {
+      setVideos([]);
+      setError(err.message);
     }
-
-    fetchVideos();
-  }, []);
+  }
+  fetchVideos();
+}, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative">
