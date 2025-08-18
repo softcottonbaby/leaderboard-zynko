@@ -148,7 +148,7 @@ export default function Leaderboard() {
                 className="px-5 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 text-white/40 cursor-not-allowed opacity-50"
               >
                 <img src="/clash/clashcoin.webp" alt="clash" className="w-4 h-4 select-none pointer-events-none" />
-                CLASH.GG
+                CLASH.GG (inactive)
               </button>
             )}
           </div>
@@ -156,12 +156,12 @@ export default function Leaderboard() {
 
         <section className="w-full max-w-5xl px-4 text-white">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 flex justify-center items-center gap-4">
-            <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none" />
-            <span>
-              <span className="text-yellow-400">{activeTab.toUpperCase()}</span> 700 {activeTab === 'clash' ? 'GEMS' : 'COINS'} WEEKLY
-            </span>
-            <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none" />
-          </h2>
+  <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none pulse-glow" />
+  <span>
+    <span className="text-yellow-400">{activeTab.toUpperCase()}</span> 700 {activeTab === 'clash' ? 'GEMS' : 'COINS'} WEEKLY
+  </span>
+  <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none pulse-glow" />
+</h2>
 
           <p className="uppercase text-base md:text-lg tracking-wider text-white/70 mb-8 font-semibold">Leaderboard</p>
 

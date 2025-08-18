@@ -27,6 +27,11 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
+    "/bonuses": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/bonuses.js"
+    ],
     "/leaderboard": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
