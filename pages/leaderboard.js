@@ -19,6 +19,7 @@ export default function Leaderboard() {
     4: 65,
     5: 40,
     6: 25,
+    7: 10,
   };
 
   useEffect(() => {

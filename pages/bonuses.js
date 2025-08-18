@@ -59,9 +59,10 @@ export default function Bonuses() {
 
                 {/* Heading */}
                 <section className="w-full max-w-5xl px-4 text-white mt-6">
-                    <h2 className="text-4xl md:text-5xl font-extrabold mb-1 text-white drop-shadow-[0_0_16px_rgba(255,0,0,0.8)]">
+                    <h2 className="text-5xl md:text-6xl font-extrabold mb-1 text-white">
                         BONUSES
                     </h2>
+
                     <p className="uppercase text-xs tracking-wide text-white/70 mb-10">
                         Use my codes for instant bonuses!
                     </p>
@@ -71,9 +72,10 @@ export default function Bonuses() {
                             .filter((site) => showBonuses[site.id]) // ✅ filter based on flag
                             .map((site) => (
                                 <div
-                                    key={site.id}
-                                    className="group bg-[#111] rounded-xl p-6 w-80 transform transition duration-300 hover:scale-105 shadow hover:shadow-red-500/30 border border-white/10"
-                                >
+  key={site.id}
+  className="group bg-[#111] rounded-xl p-6 w-80 transform transition duration-300 hover:scale-[1.02]
+             shadow-[0_0_0_1.5px_rgba(255,0,0,1)] hover:shadow-[0_0_10px_rgba(255,0,0,0.7),0_0_0_2px_rgba(255,0,0,1)]"
+>
                                     <div className="h-16 flex items-center justify-center mb-4">
                                         <img
                                             src={site.logo}
@@ -108,13 +110,15 @@ export default function Bonuses() {
                                     </div>
 
                                     <a
-                                        href={site.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block w-full bg-red-600 text-white text-sm font-bold py-2 rounded-lg text-center transition shadow-[0_0_12px_rgba(255,50,50,0.5)] hover:shadow-[0_0_20px_4px_rgba(255,50,50,0.6)] hover:scale-[1.03]"
-                                    >
-                                        CLAIM BONUS
-                                    </a>
+  href={site.url}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="block w-full bg-red-600 text-white text-sm font-bold py-2 rounded-lg text-center transition hover:scale-[1.02]"
+>
+  CLAIM BONUS
+</a>
+
+
                                 </div>
                             ))}
                     </div>
