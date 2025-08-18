@@ -158,7 +158,7 @@ export default function Leaderboard() {
           <h2 className="text-3xl md:text-4xl font-bold mb-4 flex justify-center items-center gap-4">
             <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none" />
             <span>
-              <span className="text-yellow-400">{activeTab.toUpperCase()}</span> 500 {activeTab === 'clash' ? 'GEMS' : 'COINS'} WEEKLY
+              <span className="text-yellow-400">{activeTab.toUpperCase()}</span> 700 {activeTab === 'clash' ? 'GEMS' : 'COINS'} WEEKLY
             </span>
             <img src={logoIcon} alt="site" className="w-10 h-10 md:w-12 md:h-12 select-none pointer-events-none" />
           </h2>
