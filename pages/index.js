@@ -5,25 +5,27 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
 
+  const showVideos = false; // 🔴 set to true later to re-enable the YouTube videos section
+
   useEffect(() => {
-  async function fetchVideos() {
-    try {
-      const res = await fetch('/api/youtube');
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setVideos(data);
-        setError(null);
-      } else {
+    async function fetchVideos() {
+      try {
+        const res = await fetch('/api/youtube');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setVideos(data);
+          setError(null);
+        } else {
+          setVideos([]);
+          setError(data?.error || 'Failed to load videos.');
+        }
+      } catch (err) {
         setVideos([]);
-        setError(data?.error || 'Failed to load videos.');
+        setError(err.message);
       }
-    } catch (err) {
-      setVideos([]);
-      setError(err.message);
     }
-  }
-  fetchVideos();
-}, []);
+    fetchVideos();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative">
@@ -85,55 +87,54 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Video Grid */}
-        <section className="w-full max-w-6xl px-4 pb-20 mt-10">
-          <h2 className="text-xl md:text-2xl font-bold mb-6 text-white">Latest YouTube Videos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {videos.length === 0 && (
-              <p className="text-white/60 text-sm col-span-full">
-                {error ? `Error: ${error}` : 'No videos found or failed to load.'}
-              </p>
-            )}
-            {videos.map((video) => (
-              <a
-                key={video.snippet.resourceId.videoId}
-                href={`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-black/60 rounded-lg overflow-hidden shadow-md hover:shadow-[0_0_12px_rgba(255,255,255,0.15)] transition-shadow duration-300 
-             opacity-0 translate-y-4 animate-fadeIn"
-              >
-
-                <img
-                  src={video.snippet.thumbnails?.medium?.url}
-                  alt={video.snippet.title}
-                  className="w-full h-40 object-cover"
-                />
-                <div className="p-4 text-white text-sm font-medium">
-                  {video.snippet.title}
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
+        {/* Video Grid (conditionally hidden) */}
+        {showVideos && (
+          <section className="w-full max-w-6xl px-4 pb-20 mt-10">
+            <h2 className="text-xl md:text-2xl font-bold mb-6 text-white">Latest YouTube Videos</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {videos.length === 0 && (
+                <p className="text-white/60 text-sm col-span-full">
+                  {error ? `Error: ${error}` : 'No videos found or failed to load.'}
+                </p>
+              )}
+              {videos.map((video) => (
+                <a
+                  key={video.snippet.resourceId.videoId}
+                  href={`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-black/60 rounded-lg overflow-hidden shadow-md hover:shadow-[0_0_12px_rgba(255,255,255,0.15)] transition-shadow duration-300 
+               opacity-0 translate-y-4 animate-fadeIn"
+                >
+                  <img
+                    src={video.snippet.thumbnails?.medium?.url}
+                    alt={video.snippet.title}
+                    className="w-full h-40 object-cover"
+                  />
+                  <div className="p-4 text-white text-sm font-medium">
+                    {video.snippet.title}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Sparkles Effect */}
-<div className="absolute bottom-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
-  {Array.from({ length: 30 }).map((_, i) => (
-    <span
-      key={i}
-      className="sparkle"
-      style={{
-        left: `${Math.random() * 100}%`,
-        animationDelay: `${Math.random() * 5}s`,
-        animationDuration: `${4 + Math.random() * 3}s`,
-      }}
-    />
-  ))}
-</div>
-
-
+      <div className="absolute bottom-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <span
+            key={i}
+            className="sparkle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${4 + Math.random() * 3}s`,
+            }}
+          />
+        ))}
+      </div>
 
       {/* Footer */}
       <footer className="w-full bg-[#140000] border-t border-red-800 pt-8 pb-6 relative z-10">
@@ -169,7 +170,7 @@ export default function Home() {
 
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
           <p className="text-white/50 text-xs mt-1">
-            Made by <a href="https://x.com/MMesinco" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">acesnap</a>
+            Made by <a href="https://x.com/AceSnapGFX" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">acesnap</a>
           </p>
         </div>
       </footer>
