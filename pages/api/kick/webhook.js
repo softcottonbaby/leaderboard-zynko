@@ -1,36 +1,36 @@
 // pages/api/kick/webhook.js
-import { broadcastToClients } from "./events";
+let clients = [];
+
+// Registers an SSE client connection
+export function registerClient(res) {
+  clients.push(res);
+  res.on("close", () => {
+    clients = clients.filter((c) => c !== res);
+  });
+}
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "POST") {
+    console.log("✅ Webhook received:", req.body);
 
-  const event = req.body;
+    const { type, data } = req.body;
 
-  console.log("📩 Webhook event received:", event?.type || "unknown");
+    // Handle chat messages only
+    if (type === "chat.message" && data?.user?.username) {
+      const message = {
+        user: data.user.username,
+        text: data.message || "",
+      };
 
-  try {
-    // Adjust according to Kick's actual JSON structure
-    if (event?.type?.includes("chat")) {
-      const user =
-        event?.data?.user?.username ||
-        event?.data?.sender?.username ||
-        event?.data?.display_name ||
-        "unknown";
-      const text =
-        event?.data?.message ||
-        event?.data?.content ||
-        event?.data?.text ||
-        "";
-
-      if (user && text) {
-        broadcastToClients({ user, text });
-      }
+      // Send to all connected SSE clients
+      clients.forEach((clientRes) => {
+        clientRes.write(`data: ${JSON.stringify(message)}\n\n`);
+      });
     }
-  } catch (err) {
-    console.error("❌ Error processing webhook:", err);
+
+    return res.status(200).json({ ok: true });
   }
 
-  res.status(200).json({ ok: true });
+  // Anything other than POST gets rejected
+  res.status(405).json({ error: "Method not allowed" });
 }
