@@ -100,22 +100,19 @@ export default function Leaderboard() {
           </div>
         </nav>
 
-        {/* Tab Bar (only one clickable logo) */}
+        {/* Tab Bar (CSGOLD static — not clickable) */}
         <div className="flex justify-center mb-10 mt-4">
           <div className="flex bg-[#1c1c1c] rounded-full p-1 shadow-inner gap-2">
-            <a
-              href="https://csgold.gg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center px-5 py-2 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] transition"
+            <div
+              onClick={(e) => e.preventDefault()}
+              className="flex items-center justify-center px-5 py-2 rounded-full bg-[#2e2e2e] hover:bg-[#3a3a3a] transition cursor-default"
             >
               <img
-  src={logo}
-  alt="CSGOLD.GG"
-  className="h-6 md:h-8 w-auto select-none pointer-events-none object-contain"
-/>
-
-            </a>
+                src={logo}
+                alt="CSGOLD.GG"
+                className="h-6 md:h-8 w-auto select-none pointer-events-none object-contain"
+              />
+            </div>
           </div>
         </div>
 
@@ -128,7 +125,7 @@ export default function Leaderboard() {
               className="w-8 h-8 md:w-10 md:h-10 select-none pointer-events-none"
             />
             <span>
-              <span className="text-yellow-400">CSGOLD.GG</span> 750 COINS{currency} BI-WEEKLY
+              <span className="text-yellow-400">CSGOLD.GG</span> 750 {currency} BI-WEEKLY
             </span>
             <img
               src={coin}
