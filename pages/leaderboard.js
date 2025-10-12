@@ -45,10 +45,10 @@ export default function Leaderboard() {
     }
   }
 
-  // 🧩 Fetch CHIPS.GG leaderboard (now forces fetch even without ID)
+  // 🔵 Fetch CHIPS.GG leaderboard
   async function fetchChips() {
     try {
-      const promotionId = ''; // ⚠️ put real ID here later
+      const promotionId = ''; // ⚠️ Put real ID here later
 
       if (!promotionId) {
         console.warn('⚠️ No CHIPS.GG promotion ID, testing request anyway.');
@@ -58,10 +58,7 @@ export default function Leaderboard() {
         `https://api.chips.gg/prod/api/public/getPromotionLeaderboard?promotionid=${promotionId}`
       );
 
-      console.log('Fetching Chips.gg leaderboard…');
-
       const data = await res.json();
-      console.log('Response:', data);
 
       if (Array.isArray(data?.leaderboard)) {
         const formatted = data.leaderboard.map((p, i) => ({
@@ -74,7 +71,6 @@ export default function Leaderboard() {
         }));
         setPlayers(formatted);
       } else {
-        console.log('CHIPS.GG leaderboard empty or invalid.');
         setPlayers([]);
       }
     } catch (err) {
@@ -111,13 +107,22 @@ export default function Leaderboard() {
 
   const rest = players.slice(3);
   const coin = activeSite === 'chips' ? '/chips/chipsicon.png' : '/csgold/coincsgold.svg';
-  const logo = activeSite === 'chips' ? '/chips/chips.png' : '/csgold/csgold.png';
   const currency = activeSite === 'chips' ? 'CHIPS' : 'COINS';
   const siteName = activeSite === 'chips' ? 'CHIPS.GG' : 'CSGOLD.GG';
 
+  // Dynamic glow color
+  const glowColor =
+    activeSite === 'chips'
+      ? 'rgba(0, 120, 255, 0.25)' // blue
+      : 'rgba(255, 215, 0, 0.25)'; // yellow
+
   return (
     <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative select-none">
-      <div className="absolute bottom-0 left-0 w-full h-[400px] bg-red-600 blur-[120px] opacity-20 pointer-events-none z-0" />
+      {/* Pulsing Glow Underneath */}
+      <div
+        className="absolute bottom-0 left-0 w-full h-[400px] blur-[120px] opacity-60 pointer-events-none z-[1] animate-pulseGlow"
+        style={{ backgroundColor: glowColor }}
+      />
 
       <main className="flex-grow w-screen max-w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
         {/* Navbar */}
@@ -140,20 +145,19 @@ export default function Leaderboard() {
         {/* Tab Bar */}
         <div className="flex justify-center mb-10 mt-4">
           <div className="flex bg-[#1c1c1c] rounded-full p-1 shadow-inner gap-2">
-            {/* CSGOLD */}
             <div
               onClick={() => setActiveSite('csgold')}
-              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${activeSite === 'csgold' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
-                }`}
+              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${
+                activeSite === 'csgold' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
+              }`}
             >
               <img src="/csgold/csgold.png" alt="CSGOLD.GG" className="h-6 md:h-8 w-auto" />
             </div>
-
-            {/* CHIPS */}
             <div
               onClick={() => setActiveSite('chips')}
-              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${activeSite === 'chips' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
-                }`}
+              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${
+                activeSite === 'chips' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
+              }`}
             >
               <img
                 src="/chips/chips-white.svg"
