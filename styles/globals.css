@@ -181,3 +181,13 @@ footer {
 .bg-grid::after {
   z-index: 0;
 }
+
+@keyframes roll {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-roll {
+  animation: roll 0.2s infinite;
+}

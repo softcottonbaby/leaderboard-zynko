@@ -44,6 +44,8 @@ export default function Home() {
                 { href: '/', label: 'Home' },
                 { href: '/leaderboard', label: 'Leaderboards' },
                 { href: '/bonuses', label: 'Bonuses' },
+                { href: '/picker', label: 'Picker' },
+
               ].map((item) => (
                 <Link key={item.href} href={item.href} className="relative group">
                   <span className="text-white hover:text-red-400 transition">
@@ -170,7 +172,7 @@ export default function Home() {
 
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
           <p className="text-white/50 text-xs mt-1">
-            Made by <a href="https://x.com/AceSnapGFX" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">acesnap</a>
+            Made by <a href="https://x.com/AceSnapGFXgit add ." target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">acesnap</a>
           </p>
         </div>
       </footer>

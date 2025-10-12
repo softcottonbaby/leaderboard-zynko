@@ -45,7 +45,7 @@ export default function Bonuses() {
                     <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
                         <img src="/logonavbar/zincoZ.webp" alt="Z Logo" className="h-8 md:h-10 select-none pointer-events-none" />
                         <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
-                            {[{ href: '/', label: 'Home' }, { href: '/leaderboard', label: 'Leaderboards' }, { href: '/bonuses', label: 'Bonuses' }].map((item) => (
+                            {[{ href: '/', label: 'Home' }, { href: '/leaderboard', label: 'Leaderboards' }, { href: '/bonuses', label: 'Bonuses' },{ href: '/picker', label: 'Picker' },].map((item) => (
                                 <Link key={item.href} href={item.href} className="relative group">
                                     <span className="text-white hover:text-red-400 transition">
                                         {item.label}
