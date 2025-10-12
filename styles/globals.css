@@ -123,4 +123,61 @@ img:hover {
 
 
 
+@keyframes floatItem {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.1);
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-150px) rotate(360deg) scale(1);
+    opacity: 0;
+  }
+}
 
+.animate-floatItem {
+  animation-name: floatItem;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+
+/* Hide scrollbar */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* Make the layout take full height */
+html, body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main container should fill available space */
+main {
+  flex: 1;
+}
+
+/* Footer styling — always sticks to the bottom */
+footer {
+  margin-top: auto;
+  position: relative;
+  z-index: 2; /* stays above glow */
+}
+
+/* Glow should stay behind everything */
+.bg-grid::after {
+  z-index: 0;
+}

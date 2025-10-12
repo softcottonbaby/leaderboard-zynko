@@ -106,15 +106,15 @@ export default function Leaderboard() {
   }, [activeSite]);
 
   const rest = players.slice(3);
-  const coin = activeSite === 'chips' ? '/chips/chipsicon.png' : '/csgold/coincsgold.svg';
+  const coin = activeSite === 'chips' ? '/chips/chipsicon.svg' : '/csgold/coincsgold.svg';
   const currency = activeSite === 'chips' ? 'CHIPS' : 'COINS';
   const siteName = activeSite === 'chips' ? 'CHIPS.GG' : 'CSGOLD.GG';
 
-  // Dynamic glow color
-  const glowColor =
-    activeSite === 'chips'
-      ? 'rgba(0, 120, 255, 0.25)' // blue
-      : 'rgba(255, 215, 0, 0.25)'; // yellow
+  // Dynamic glow + accent colors
+  const ethBlue = '#3c8ef391';
+  const gold = '#ffd90080';
+  const glowColor = activeSite === 'chips' ? 'rgba(60, 141, 243, 0.64)' : 'rgba(255, 217, 0, 0.7)';
+  const accentColor = activeSite === 'chips' ? ethBlue : gold;
 
   return (
     <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative select-none">
@@ -147,17 +147,15 @@ export default function Leaderboard() {
           <div className="flex bg-[#1c1c1c] rounded-full p-1 shadow-inner gap-2">
             <div
               onClick={() => setActiveSite('csgold')}
-              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${
-                activeSite === 'csgold' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
-              }`}
+              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${activeSite === 'csgold' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
+                }`}
             >
               <img src="/csgold/csgold.png" alt="CSGOLD.GG" className="h-6 md:h-8 w-auto" />
             </div>
             <div
               onClick={() => setActiveSite('chips')}
-              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${
-                activeSite === 'chips' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
-              }`}
+              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${activeSite === 'chips' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
+                }`}
             >
               <img
                 src="/chips/chips-white.svg"
@@ -172,9 +170,25 @@ export default function Leaderboard() {
         <section className="w-full max-w-5xl px-4 text-white">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 flex justify-center items-center gap-4">
             <img src={coin} alt="coin left" className="w-8 h-8 md:w-10 md:h-10" />
-            <span>
-              <span className="text-yellow-400">{siteName}</span> 750 {currency} BI-WEEKLY
-            </span>
+            <span
+  className="font-bold bg-clip-text text-transparent"
+  style={{
+    backgroundImage:
+      activeSite === 'chips'
+        ? 'linear-gradient(90deg, #4cc9ff, #3c8ef3, #007bff)'
+        : 'linear-gradient(90deg, #ffcc33, #d4af37, #b8860b)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    display: 'inline-block',
+  }}
+>
+  {siteName}
+</span>{' '}
+750 {currency} BI-WEEKLY
+
+
+
+
             <img src={coin} alt="coin right" className="w-8 h-8 md:w-10 md:h-10" />
           </h2>
 
@@ -184,28 +198,58 @@ export default function Leaderboard() {
 
           {/* Timer */}
           {!isEnded ? (
-            <div className="bg-[#111] text-white border border-white/10 rounded-lg py-4 px-6 mb-6 max-w-md mx-auto">
-              <p className="text-base font-bold mb-2">LEADERBOARD ENDS IN</p>
-              <div className="flex justify-center gap-4 text-lg font-mono">
-                {['days', 'hours', 'minutes', 'seconds']
-                  .map((unit) => (
-                    <div key={unit} className="text-center">
-                      <p>{String(timeLeft[unit]).padStart(2, '0')}</p>
-                      <p className="text-xs text-white/50">{unit.toUpperCase()}</p>
-                    </div>
-                  ))
-                  .reduce(
-                    (acc, el, i, arr) => acc.concat(el, i < arr.length - 1 ? <p key={`sep-${i}`}>:</p> : []),
-                    []
-                  )}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-red-800/20 text-red-400 border border-red-600 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto">
-              <p className="font-bold">LEADERBOARD CONCLUDED</p>
-              <p className="text-xs text-white/70">Check the discord for your next chance to win!</p>
-            </div>
-          )}
+  <div
+    className="text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border"
+    style={{
+      background: activeSite === 'chips'
+        ? 'linear-gradient(135deg, rgba(76,201,255,0.15), rgba(0,123,255,0.25))'
+        : 'linear-gradient(135deg, rgba(255,204,51,0.15), rgba(212,175,55,0.25))',
+      borderColor: activeSite === 'chips'
+        ? 'rgba(76,201,255,0.4)'
+        : 'rgba(255,204,51,0.4)',
+      boxShadow: activeSite === 'chips'
+        ? '0 0 20px rgba(60,142,243,0.4)'
+        : '0 0 20px rgba(255,217,0,0.3)',
+    }}
+  >
+    <p className="text-base font-bold mb-2">LEADERBOARD ENDS IN</p>
+    <div className="flex justify-center gap-4 text-lg font-mono">
+      {['days', 'hours', 'minutes', 'seconds']
+        .map((unit) => (
+          <div key={unit} className="text-center">
+            <p>{String(timeLeft[unit]).padStart(2, '0')}</p>
+            <p className="text-xs text-white/50">{unit.toUpperCase()}</p>
+          </div>
+        ))
+        .reduce(
+          (acc, el, i, arr) => acc.concat(el, i < arr.length - 1 ? <p key={`sep-${i}`}>:</p> : []),
+          []
+        )}
+    </div>
+  </div>
+) : (
+  <div
+    className="text-white border border-white/20 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm"
+    style={{
+      background: activeSite === 'chips'
+        ? 'linear-gradient(135deg, rgba(76,201,255,0.15), rgba(0,123,255,0.25))'
+        : 'linear-gradient(135deg, rgba(255,204,51,0.15), rgba(212,175,55,0.25))',
+      borderColor: activeSite === 'chips'
+        ? 'rgba(76,201,255,0.4)'
+        : 'rgba(255,204,51,0.4)',
+      boxShadow: activeSite === 'chips'
+        ? '0 0 20px rgba(60,142,243,0.4)'
+        : '0 0 20px rgba(255,217,0,0.3)',
+    }}
+  >
+    <p className="font-bold uppercase tracking-wide text-center">LEADERBOARD CONCLUDED</p>
+    <p className="text-xs text-white/80 text-center mt-1">
+      Check the discord for your next chance to win!
+    </p>
+  </div>
+)}
+
+
 
           {/* Table */}
           <div className="overflow-x-auto bg-black/40 rounded-lg">
@@ -237,7 +281,10 @@ export default function Leaderboard() {
                         {player.username}
                       </td>
                       <td className="px-4 py-3">${player.wageredAmount.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-yellow-400">
+                      <td
+                        className="px-4 py-3"
+                        style={{ color: accentColor }}
+                      >
                         <span className="flex items-center gap-1">
                           <img src={coin} alt="coin" className="w-4 h-4" />
                           {player.reward.replace('Coins', currency)}
