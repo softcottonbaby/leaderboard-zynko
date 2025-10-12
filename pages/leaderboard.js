@@ -110,7 +110,7 @@ export default function Leaderboard() {
   }, [activeSite]);
 
   const rest = players.slice(3);
-  const coin = activeSite === 'chips' ? '/chips/chipcoin.svg' : '/csgold/coincsgold.svg';
+  const coin = activeSite === 'chips' ? '/chips/chipsicon.png' : '/csgold/coincsgold.svg';
   const logo = activeSite === 'chips' ? '/chips/chips.png' : '/csgold/csgold.png';
   const currency = activeSite === 'chips' ? 'CHIPS' : 'COINS';
   const siteName = activeSite === 'chips' ? 'CHIPS.GG' : 'CSGOLD.GG';
@@ -151,17 +151,16 @@ export default function Leaderboard() {
 
             {/* CHIPS */}
             <div
-  onClick={() => setActiveSite('chips')}
-  className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${
-    activeSite === 'chips' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
-  }`}
->
-  <img
-    src="/chips/chips-white.svg"
-    alt="CHIPS.GG"
-    className="h-[15px] md:h-[17px] w-auto select-none pointer-events-none object-contain"
-  />
-</div>
+              onClick={() => setActiveSite('chips')}
+              className={`flex items-center justify-center px-5 py-2 rounded-full transition cursor-pointer ${activeSite === 'chips' ? 'bg-[#2e2e2e]' : 'hover:bg-[#3a3a3a]'
+                }`}
+            >
+              <img
+                src="/chips/chips-white.svg"
+                alt="CHIPS.GG"
+                className="h-[15px] md:h-[17px] w-auto select-none pointer-events-none object-contain"
+              />
+            </div>
           </div>
         </div>
 
