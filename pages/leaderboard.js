@@ -116,7 +116,7 @@ export default function Leaderboard() {
 
   // Timer
   useEffect(() => {
-    const endDate = new Date("2025-10-24T23:59:59Z");
+    const endDate = new Date("2025-10-26T20:59:25Z");
     const interval = setInterval(() => {
       const diff = endDate - new Date();
       if (diff <= 0) {
@@ -172,16 +172,15 @@ export default function Leaderboard() {
     <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative select-none">
       {/* Smooth Bottom Glow */}
       <div
-  className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${
-    activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"
-  }`}
-  style={{
-    background:
-      activeSite === "chips"
-        ? "radial-gradient(circle at 50% 100%, rgba(76,201,255,0.5) 0%, rgba(0,0,0,0) 80%)"
-        : "radial-gradient(circle at 50% 100%, rgba(255,204,51,0.45) 0%, rgba(0,0,0,0) 80%)",
-  }}
-></div>
+        className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"
+          }`}
+        style={{
+          background:
+            activeSite === "chips"
+              ? "radial-gradient(circle at 50% 100%, rgba(76,201,255,0.5) 0%, rgba(0,0,0,0) 80%)"
+              : "radial-gradient(circle at 50% 100%, rgba(255,204,51,0.45) 0%, rgba(0,0,0,0) 80%)",
+        }}
+      ></div>
 
 
 
