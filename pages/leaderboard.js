@@ -46,37 +46,58 @@ export default function Leaderboard() {
   }
 
   // 🔵 Fetch CHIPS.GG leaderboard
-  async function fetchChips() {
+ // 🔵 Fetch CHIPS.GG leaderboard
+async function fetchChips(promotionId = "99SRVGQMNQ1BRD10R7DLTU") {
+  try {
+    // 🟦 Automatically adds the correct "promotion:" prefix for Chips.gg API
+    const prefixedId = promotionId.startsWith("promotion:")
+      ? promotionId
+      : `promotion:${promotionId}`;
+
+    const res = await fetch(`/api/chips?promotionId=${encodeURIComponent(prefixedId)}`);
+    const text = await res.text();
+
     try {
-      const promotionId = ''; // ⚠️ Put real ID here later
+      const result = JSON.parse(text);
 
-      if (!promotionId) {
-        console.warn('⚠️ No CHIPS.GG promotion ID, testing request anyway.');
-      }
-
-      const res = await fetch(
-        `https://api.chips.gg/prod/api/public/getPromotionLeaderboard?promotionid=${promotionId}`
-      );
-
-      const data = await res.json();
-
-      if (Array.isArray(data?.leaderboard)) {
-        const formatted = data.leaderboard.map((p, i) => ({
-          id: p.username + i,
-          rank: p.rank || i + 1,
-          username: p.username || 'Anonymous',
-          profilePicture: p.avatarUrl || '/chips/default-avatar.png',
-          wageredAmount: parseFloat(p.volume || 0),
-          reward: `${p.rewardAmount || 0} Chips`,
-        }));
-        setPlayers(formatted);
-      } else {
+      if (!res.ok || !result.success) {
+        console.error("Server returned an error:", result);
         setPlayers([]);
+        return;
       }
-    } catch (err) {
-      console.error('Error fetching CHIPS.GG leaderboard:', err);
+
+      // Some Chips.gg responses may wrap leaderboard inside `data.data`
+      const data =
+        result.data?.leaderboard ||
+        result.data?.data?.leaderboard ||
+        result.data?.leaderboardData ||
+        result.data ||
+        [];
+
+      const formatted = data.map((p, i) => ({
+        id: (p.username || "anon") + i,
+        rank: p.rank || i + 1,
+        username: p.username || "Anonymous",
+        profilePicture: p.avatarUrl || "/chips/default-avatar.png",
+        wageredAmount: parseFloat(p.volume || 0),
+        reward: `${p.rewardAmount || 0} Chips`,
+      }));
+
+      setPlayers(formatted);
+    } catch (jsonErr) {
+      console.error("Non-JSON response from /api/chips:", text.slice(0, 500));
+      setPlayers([]);
     }
+  } catch (err) {
+    console.error("Error fetching /api/chips:", err);
+    setPlayers([]);
   }
+}
+
+
+
+
+
 
   // ⏱ Countdown timer
   useEffect(() => {
