@@ -191,3 +191,41 @@ footer {
 .animate-roll {
   animation: roll 0.2s infinite;
 }
+
+/* ========================= */
+/* 🔥 Dynamic Background Glow */
+/* ========================= */
+
+@keyframes pulseBlue {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+    filter: blur(160px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    filter: blur(200px);
+  }
+}
+
+@keyframes pulseGold {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+    filter: blur(160px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    filter: blur(200px);
+  }
+}
+
+.animate-pulse-blue {
+  animation: pulseBlue 5s ease-in-out infinite;
+}
+
+.animate-pulse-gold {
+  animation: pulseGold 5s ease-in-out infinite;
+}
