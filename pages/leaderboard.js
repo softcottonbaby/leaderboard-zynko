@@ -1,6 +1,7 @@
 import PodiumTop3 from "/components/PodiumTop3";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Leaderboard() {
   const [loading, setLoading] = useState(false);
@@ -98,9 +99,9 @@ export default function Leaderboard() {
           reward:
             prize > 0
               ? `${prize.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} ${prizeCurrency}`
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} ${prizeCurrency}`
               : "-",
         };
       });
@@ -172,8 +173,9 @@ export default function Leaderboard() {
     <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative select-none">
       {/* Smooth Bottom Glow */}
       <div
-        className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"
-          }`}
+        className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${
+          activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"
+        }`}
         style={{
           background:
             activeSite === "chips"
@@ -181,9 +183,6 @@ export default function Leaderboard() {
               : "radial-gradient(circle at 50% 100%, rgba(255,204,51,0.45) 0%, rgba(0,0,0,0) 80%)",
         }}
       ></div>
-
-
-
 
       <main className="flex-grow w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
         {/* Navbar */}
@@ -218,8 +217,11 @@ export default function Leaderboard() {
               <div
                 key={site}
                 onClick={() => setActiveSite(site)}
-                className={`flex items-center justify-center px-5 py-2 rounded-full cursor-pointer transition ${activeSite === site ? "bg-[#2e2e2e]" : "hover:bg-[#3a3a3a]"
-                  }`}
+                className={`flex items-center justify-center px-5 py-2 rounded-full cursor-pointer transition ${
+                  activeSite === site
+                    ? "bg-[#2e2e2e]"
+                    : "hover:bg-[#3a3a3a]"
+                }`}
               >
                 <img
                   src={
@@ -235,120 +237,167 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Header */}
-        <section className="w-full max-w-5xl px-4 text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-2 flex justify-center items-center gap-4">
-            <img src={coin} alt="coin left" className="w-8 h-8" />
-            <span
-              className="font-bold bg-clip-text text-transparent"
-              style={{
-                backgroundImage:
-                  activeSite === "chips"
-                    ? "linear-gradient(90deg, #4cc9ff, #3c8ef3, #007bff)"
-                    : "linear-gradient(90deg, #ffcc33, #d4af37, #b8860b)",
-              }}
+        {/* Leaderboard Section with Animations */}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loader"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center justify-center h-[400px] w-full"
             >
-              {siteName}
-            </span>
-            {totalPrize} {rewardLabel} BI-WEEKLY
-            <img src={coin} alt="coin right" className="w-8 h-8" />
-          </h2>
-          <p className="uppercase text-base md:text-lg tracking-wider text-white/70 mb-8 font-semibold">
-            Leaderboard
-          </p>
-
-          {/* Podium Top 3 */}
-          <PodiumTop3
-            players={filledPlayers}
-            accent={accentColor}
-            rewardLabel={rewardLabel}
-            iconPath={coin}
-            wagerIcon={coin}
-            totalPrize={totalPrize}
-          />
-
-          {/* Timer */}
-          {!isEnded ? (
-            <div
-              className="text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border"
-              style={{
-                background:
+              <motion.div
+                className={`w-16 h-16 border-4 rounded-full ${
                   activeSite === "chips"
-                    ? "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))"
-                    : "linear-gradient(135deg, rgba(255,204,51,0.06), rgba(212,175,55,0.12))",
-              }}
-            >
-              <p className="text-base font-bold mb-2">LEADERBOARD ENDS IN</p>
-              <div className="flex justify-center gap-4 text-lg font-mono">
-                {["days", "hours", "minutes", "seconds"].map((u) => (
-                  <div key={u} className="text-center">
-                    <p>{String(timeLeft[u]).padStart(2, "0")}</p>
-                    <p className="text-xs text-white/50">{u.toUpperCase()}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    ? "border-t-transparent border-blue-400 border-blue-200"
+                    : "border-t-transparent border-yellow-400 border-yellow-200"
+                }`}
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              />
+              <p className="mt-6 text-white/70 font-semibold tracking-wide text-lg">
+                Loading {activeSite.toUpperCase()} leaderboard...
+              </p>
+            </motion.div>
           ) : (
-            <div className="text-white border border-white/20 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm">
-              <p className="font-bold uppercase tracking-wide text-center">
-                LEADERBOARD CONCLUDED
-              </p>
-              <p className="text-xs text-white/80 text-center mt-1">
-                Check Discord for your next chance to win!
-              </p>
-            </div>
-          )}
+            <motion.section
+              key={activeSite}
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -30 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="w-full max-w-5xl px-4 text-white"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-2 flex justify-center items-center gap-4">
+                <img src={coin} alt="coin left" className="w-8 h-8" />
+                <span
+                  className="font-bold bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage:
+                      activeSite === "chips"
+                        ? "linear-gradient(90deg, #4cc9ff, #3c8ef3, #007bff)"
+                        : "linear-gradient(90deg, #ffcc33, #d4af37, #b8860b)",
+                  }}
+                >
+                  {siteName}
+                </span>
+                {totalPrize} {rewardLabel} BI-WEEKLY
+                <img src={coin} alt="coin right" className="w-8 h-8" />
+              </h2>
 
-          {/* Table for 4–9 */}
-          <div className="overflow-x-auto bg-black/40 rounded-lg">
-            <table className="min-w-full text-left text-sm table-auto">
-              <thead className="text-white/70 border-b border-white/10">
-                <tr>
-                  <th className="px-4 py-2">RANK</th>
-                  <th className="px-4 py-2">PLAYER</th>
-                  <th className="px-4 py-2">WAGERED</th>
-                  <th className="px-4 py-2">REWARD</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rest.map((p) => (
-                  <tr
-                    key={p.id}
-                    className={`border-t border-white/10 hover:bg-white/5 ${p.username === "EMPTY" ? "opacity-50 italic" : ""
-                      }`}
-                  >
-                    <td className="px-4 py-3">{p.rank}</td>
-                    <td className="px-4 py-3 flex items-center gap-2">
-                      <img
-                        src={
+              <p className="uppercase text-base md:text-lg tracking-wider text-white/70 mb-8 font-semibold">
+                Leaderboard
+              </p>
+
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
+                <PodiumTop3
+                  players={filledPlayers}
+                  accent={accentColor}
+                  rewardLabel={rewardLabel}
+                  iconPath={coin}
+                  wagerIcon={coin}
+                  totalPrize={totalPrize}
+                />
+              </motion.div>
+
+              {!isEnded ? (
+                <div
+                  className="text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border"
+                  style={{
+                    background:
+                      activeSite === "chips"
+                        ? "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))"
+                        : "linear-gradient(135deg, rgba(255,204,51,0.06), rgba(212,175,55,0.12))",
+                  }}
+                >
+                  <p className="text-base font-bold mb-2">
+                    LEADERBOARD ENDS IN
+                  </p>
+                  <div className="flex justify-center gap-4 text-lg font-mono">
+                    {["days", "hours", "minutes", "seconds"].map((u) => (
+                      <div key={u} className="text-center">
+                        <p>{String(timeLeft[u]).padStart(2, "0")}</p>
+                        <p className="text-xs text-white/50">
+                          {u.toUpperCase()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-white border border-white/20 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm">
+                  <p className="font-bold uppercase tracking-wide text-center">
+                    LEADERBOARD CONCLUDED
+                  </p>
+                  <p className="text-xs text-white/80 text-center mt-1">
+                    Check Discord for your next chance to win!
+                  </p>
+                </div>
+              )}
+
+              <div className="overflow-x-auto bg-black/40 rounded-lg transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+                <table className="min-w-full text-left text-sm table-auto">
+                  <thead className="text-white/70 border-b border-white/10">
+                    <tr>
+                      <th className="px-4 py-2">RANK</th>
+                      <th className="px-4 py-2">PLAYER</th>
+                      <th className="px-4 py-2">WAGERED</th>
+                      <th className="px-4 py-2">REWARD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rest.map((p) => (
+                      <tr
+                        key={p.id}
+                        className={`border-t border-white/10 hover:bg-white/5 ${
                           p.username === "EMPTY"
-                            ? "/black.png"
-                            : p.profilePicture
-                        }
-                        alt="avatar"
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                      {p.username === "EMPTY"
-                        ? "EMPTY"
-                        : maskUsername(p.username)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.wageredAmount
-                        ? `$${p.wageredAmount.toFixed(2)}`
-                        : "–"}
-                    </td>
-                    <td className="px-4 py-3" style={{ color: accentColor }}>
-                      <span className="flex items-center gap-1">
-                        <img src={coin} alt="coin" className="w-4 h-4" />
-                        {p.reward || "–"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                            ? "opacity-50 italic"
+                            : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3">{p.rank}</td>
+                        <td className="px-4 py-3 flex items-center gap-2">
+                          <img
+                            src={
+                              p.username === "EMPTY"
+                                ? "/black.png"
+                                : p.profilePicture
+                            }
+                            alt="avatar"
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                          {p.username === "EMPTY"
+                            ? "EMPTY"
+                            : maskUsername(p.username)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.wageredAmount
+                            ? `$${p.wageredAmount.toFixed(2)}`
+                            : "–"}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          style={{ color: accentColor }}
+                        >
+                          <span className="flex items-center gap-1">
+                            <img src={coin} alt="coin" className="w-4 h-4" />
+                            {p.reward || "–"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer */}
