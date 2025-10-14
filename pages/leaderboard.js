@@ -13,7 +13,7 @@ export default function Leaderboard() {
     seconds: 0,
   });
   const [isEnded, setIsEnded] = useState(false);
-  const [activeSite, setActiveSite] = useState("csgold");
+  const [activeSite, setActiveSite] = useState("chips");
 
   // Manual prizes for CSGOLD
   const manualCsgoldPrizes = {

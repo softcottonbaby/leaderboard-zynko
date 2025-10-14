@@ -229,3 +229,33 @@ footer {
 .animate-pulse-gold {
   animation: pulseGold 5s ease-in-out infinite;
 }
+
+/* /styles/globals.css */
+.chat-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  padding: 10px;
+  z-index: 1000;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.message {
+  color: white;
+  font-size: 14px;
+}
+
+.message strong {
+  color: #ff4500;
+}
+
