@@ -10,7 +10,8 @@ function PodiumCard({ player, position, accent }) {
   const accentColor = accent.replace(", 0.9)", ")");
   const accentGlow = accent.replace("0.9", "0.4");
 
-  const cardSize = isPrimary ? "w-64" : "w-60 -mb-8";
+  // CHANGE: Make card size and margin responsive. On mobile, all cards are the same width without negative margins.
+  const cardSize = isPrimary ? "w-64" : "w-64 md:w-60 md:-mb-8";
   const avatarSize = isPrimary ? "w-28 h-28" : "w-24 h-24";
   const rankSize = isPrimary ? "w-10 h-10 text-lg" : "w-8 h-8 text-base";
 
@@ -28,7 +29,6 @@ function PodiumCard({ player, position, accent }) {
     cardStyle.backgroundColor = "rgba(40, 30, 10, 0.4)";
   }
 
-  // --- CHANGE: Gradient colors for rank badges ---
   const getRankStyling = (pos) => {
     switch (pos) {
       case 1: // Gold
@@ -141,29 +141,37 @@ function PodiumTop3({ players = [], accent = "rgba(76, 201, 255, 0.9)"}) {
     }),
   };
 
+  // CHANGE: The main container is now a column on mobile with a large gap, and a row on desktop.
+  // The cards are reordered for mobile, and the `order` utility rearranges them for desktop.
   return (
-    <div className="flex justify-center items-end gap-4 md:gap-6 flex-wrap">
-      <motion.div
-        custom={1}
-        initial="hidden"
-        animate="visible"
-        variants={podiumVariants}
-      >
-        <PodiumCard player={topThree[1]} position={2} accent={accent} />
-      </motion.div>
+    <div className="flex flex-col items-center gap-16 md:flex-row md:items-end md:gap-6">
+      {/* 1st Place Card */}
       <motion.div
         custom={0}
         initial="hidden"
         animate="visible"
         variants={podiumVariants}
+        className="md:order-2" // Center on desktop
       >
         <PodiumCard player={topThree[0]} position={1} accent={accent} />
       </motion.div>
+      {/* 2nd Place Card */}
+      <motion.div
+        custom={1}
+        initial="hidden"
+        animate="visible"
+        variants={podiumVariants}
+        className="md:order-1" // Left on desktop
+      >
+        <PodiumCard player={topThree[1]} position={2} accent={accent} />
+      </motion.div>
+      {/* 3rd Place Card */}
       <motion.div
         custom={2}
         initial="hidden"
         animate="visible"
         variants={podiumVariants}
+        className="md:order-3" // Right on desktop
       >
         <PodiumCard player={topThree[2]} position={3} accent={accent} />
       </motion.div>
@@ -397,7 +405,6 @@ export default function Leaderboard() {
             <img src="/logonavbar/zincoZ.webp" alt="Z Logo" className="h-8 md:h-10" />
             <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
               {[{ href: "/", label: "Home" }, { href: "/leaderboard", label: "Leaderboard" }, { href: "/bonuses", label: "Bonuses" }].map((i) => (
-                // --- Replaced Next.js Link with standard <a> tag to fix error ---
                 <a key={i.href} href={i.href} className="relative group">
                   <span className="text-white hover:text-red-400 transition">
                     {i.label}
@@ -483,7 +490,7 @@ export default function Leaderboard() {
               </p>
 
               <motion.div
-                className="mt-12 mb-12" /* <-- FIX IS HERE: Increased margin for more spacing */
+                className="mt-12 mb-12"
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
