@@ -259,3 +259,19 @@ footer {
   color: #ff4500;
 }
 
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+.animated-gradient {
+  background-size: 400% 400%; /* bigger to make movement more visible */
+  animation: gradientShift 3s ease infinite; /* slightly faster */
+}

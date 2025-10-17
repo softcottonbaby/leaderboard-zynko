@@ -44,7 +44,7 @@ export default function Home() {
                 { href: '/', label: 'Home' },
                 { href: '/leaderboard', label: 'Leaderboards' },
                 { href: '/bonuses', label: 'Bonuses' },
-                { href: '/picker', label: 'Picker' },
+              
 
               ].map((item) => (
                 <Link key={item.href} href={item.href} className="relative group">

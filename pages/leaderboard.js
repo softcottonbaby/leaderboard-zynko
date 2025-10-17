@@ -1,7 +1,176 @@
-import PodiumTop3 from "/components/PodiumTop3";
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// --- PodiumTop3 component is now inside Leaderboard.jsx to fix import error ---
+
+function PodiumCard({ player, position, accent }) {
+  const isPrimary = position === 1;
+  const isEmpty = player.username === "EMPTY";
+
+  const accentColor = accent.replace(", 0.9)", ")");
+  const accentGlow = accent.replace("0.9", "0.4");
+
+  const cardSize = isPrimary ? "w-64" : "w-60 -mb-8";
+  const avatarSize = isPrimary ? "w-28 h-28" : "w-24 h-24";
+  const rankSize = isPrimary ? "w-10 h-10 text-lg" : "w-8 h-8 text-base";
+
+  const cardStyle = {
+    backgroundColor: "rgba(18, 26, 43, 0.4)",
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    border: "1.5px solid rgba(255, 255, 255, 0.8)",
+    boxShadow: isPrimary
+      ? `0 0 40px ${accentGlow}`
+      : `0 0 15px ${accentGlow}`,
+  };
+
+  if (accent.includes("255,205,60")) {
+    cardStyle.backgroundColor = "rgba(40, 30, 10, 0.4)";
+  }
+
+  // --- CHANGE: Gradient colors for rank badges ---
+  const getRankStyling = (pos) => {
+    switch (pos) {
+      case 1: // Gold
+        return {
+          background: 'linear-gradient(45deg, #fce570, #efb418)',
+          color: 'black',
+          boxShadow: '0 0 15px rgba(255, 215, 0, 0.6)',
+        };
+      case 2: // Silver
+        return {
+          background: 'linear-gradient(45deg, #e8ecf2, #b6c0d2)',
+          color: 'black',
+          boxShadow: '0 0 15px rgba(192, 192, 192, 0.6)',
+        };
+      case 3: // Bronze
+        return {
+          background: 'linear-gradient(45deg, #d99f6c, #a16b47)',
+          color: 'white',
+          textShadow: '0 1px 1px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 0 15px rgba(205, 127, 50, 0.6)',
+        };
+      default:
+        return {};
+    }
+  };
+
+  const rankBadgeStyle = getRankStyling(position);
+
+  return (
+    <div
+      className={`relative rounded-2xl ${cardSize} flex flex-col items-center justify-start p-5 transition-all duration-300 hover:-translate-y-2 ${isEmpty ? "opacity-60" : ""}`}
+      style={cardStyle}
+    >
+      <div className={`relative mb-8 ${isPrimary ? "-mt-16" : "-mt-12"}`}>
+        <div
+          className={`rounded-full p-[3px]`}
+          style={{
+            border: `3px solid ${accent.includes("255, 205, 60") ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}`
+          }}
+        >
+          <img
+            src={player.avatar || player.profilePicture || "/default-avatar.png"}
+            alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`}
+            className={`${avatarSize} rounded-full object-cover border-2 border-white/50`}
+            onError={(e) => (e.target.src = "/default-avatar.png")}
+          />
+        </div>
+        <div
+          className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${rankSize} rounded-full flex items-center justify-center font-bold border-2 border-white/80`}
+          style={rankBadgeStyle}
+        >
+          {position}
+        </div>
+      </div>
+
+      <p className="font-bold text-white text-xl mb-4 tracking-wide truncate w-full px-2">
+        {player.username}
+      </p>
+
+      <div className="w-full flex flex-col gap-3">
+        <div className="text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60 mb-1">
+            Wagered
+          </p>
+          <p className="text-xl font-bold text-white">
+            {player.wageredAmount
+              ? `$${Number(player.wageredAmount).toLocaleString()}`
+              : "–"}
+          </p>
+        </div>
+
+        <div className="text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60 mb-1">
+            Prize
+          </p>
+          <p className="text-lg font-bold" style={{ color: accentColor }}>
+            {player.reward && player.reward !== "0.00 USDT" ? player.reward : "–"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function PodiumTop3({ players = [], accent = "rgba(76, 201, 255, 0.9)"}) {
+  const emptyPlayer = {
+    username: "EMPTY",
+    avatar: "/default-avatar.png",
+    wageredAmount: null,
+    reward: null,
+  };
+
+  const topThree = [
+    players[0] || emptyPlayer,
+    players[1] || emptyPlayer,
+    players[2] || emptyPlayer,
+  ];
+
+  const podiumVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.15,
+        duration: 0.5,
+        ease: "easeOut",
+      },
+    }),
+  };
+
+  return (
+    <div className="flex justify-center items-end gap-4 md:gap-6 flex-wrap">
+      <motion.div
+        custom={1}
+        initial="hidden"
+        animate="visible"
+        variants={podiumVariants}
+      >
+        <PodiumCard player={topThree[1]} position={2} accent={accent} />
+      </motion.div>
+      <motion.div
+        custom={0}
+        initial="hidden"
+        animate="visible"
+        variants={podiumVariants}
+      >
+        <PodiumCard player={topThree[0]} position={1} accent={accent} />
+      </motion.div>
+      <motion.div
+        custom={2}
+        initial="hidden"
+        animate="visible"
+        variants={podiumVariants}
+      >
+        <PodiumCard player={topThree[2]} position={3} accent={accent} />
+      </motion.div>
+    </div>
+  );
+}
+
 
 export default function Leaderboard() {
   const [loading, setLoading] = useState(false);
@@ -170,8 +339,46 @@ export default function Leaderboard() {
   const totalPrize = activeSite === "chips" ? "2000" : "750";
 
   return (
-    <div className="flex flex-col min-h-screen bg-grid overflow-x-hidden relative select-none">
-      {/* Smooth Bottom Glow */}
+    <div className="flex flex-col min-h-screen overflow-x-hidden relative select-none bg-black">
+      <AnimatePresence>
+        {activeSite === "chips" && (
+          <motion.div
+            key="chips-bg"
+            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: "easeInOut" }}
+            style={{
+              backgroundColor: "#080c18",
+              backgroundImage: `
+                linear-gradient(to right, rgba(76, 201, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(76, 201, 255, 0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: "50px 50px",
+            }}
+          />
+        )}
+        {activeSite === "csgold" && (
+          <motion.div
+            key="csgold-bg"
+            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: "easeInOut" }}
+            style={{
+              backgroundColor: "#1c160c",
+              backgroundImage: `
+                linear-gradient(to right, rgba(255, 205, 60, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 205, 60, 0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: "50px 50px",
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <div
         className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${
           activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"
@@ -185,32 +392,23 @@ export default function Leaderboard() {
       ></div>
 
       <main className="flex-grow w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
-        {/* Navbar */}
         <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-[#0a0000] text-white">
           <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
-            <img
-              src="/logonavbar/zincoZ.webp"
-              alt="Z Logo"
-              className="h-8 md:h-10"
-            />
+            <img src="/logonavbar/zincoZ.webp" alt="Z Logo" className="h-8 md:h-10" />
             <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
-              {[
-                { href: "/", label: "Home" },
-                { href: "/leaderboard", label: "Leaderboard" },
-                { href: "/bonuses", label: "Bonuses" },
-              ].map((i) => (
-                <Link key={i.href} href={i.href} className="relative group">
+              {[{ href: "/", label: "Home" }, { href: "/leaderboard", label: "Leaderboard" }, { href: "/bonuses", label: "Bonuses" }].map((i) => (
+                // --- Replaced Next.js Link with standard <a> tag to fix error ---
+                <a key={i.href} href={i.href} className="relative group">
                   <span className="text-white hover:text-red-400 transition">
                     {i.label}
                     <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
                   </span>
-                </Link>
+                </a>
               ))}
             </div>
           </div>
         </nav>
 
-        {/* Tabs */}
         <div className="flex justify-center mb-10 mt-4">
           <div className="flex bg-[#1c1c1c] rounded-full p-1 shadow-inner gap-2">
             {["csgold", "chips"].map((site) => (
@@ -218,17 +416,11 @@ export default function Leaderboard() {
                 key={site}
                 onClick={() => setActiveSite(site)}
                 className={`flex items-center justify-center px-5 py-2 rounded-full cursor-pointer transition ${
-                  activeSite === site
-                    ? "bg-[#2e2e2e]"
-                    : "hover:bg-[#3a3a3a]"
+                  activeSite === site ? "bg-[#2e2e2e]" : "hover:bg-[#3a3a3a]"
                 }`}
               >
                 <img
-                  src={
-                    site === "chips"
-                      ? "/chips/chips-white.svg"
-                      : "/csgold/csgold.png"
-                  }
+                  src={site === "chips" ? "/chips/chips-white.svg" : "/csgold/csgold.png"}
                   alt={site}
                   className={`h-6 w-auto ${site === "chips" ? "h-[17px]" : ""}`}
                 />
@@ -237,7 +429,6 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* Leaderboard Section with Animations */}
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
@@ -271,9 +462,9 @@ export default function Leaderboard() {
               className="w-full max-w-5xl px-4 text-white"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-2 flex justify-center items-center gap-4">
-                <img src={coin} alt="coin left" className="w-8 h-8" />
+                <img src={coin} alt="" className="w-8 h-8" />
                 <span
-                  className="font-bold bg-clip-text text-transparent"
+                  className="font-bold bg-clip-text text-transparent animated-gradient"
                   style={{
                     backgroundImage:
                       activeSite === "chips"
@@ -284,7 +475,7 @@ export default function Leaderboard() {
                   {siteName}
                 </span>
                 {totalPrize} {rewardLabel} BI-WEEKLY
-                <img src={coin} alt="coin right" className="w-8 h-8" />
+                <img src={coin} alt="" className="w-8 h-8" />
               </h2>
 
               <p className="uppercase text-base md:text-lg tracking-wider text-white/70 mb-8 font-semibold">
@@ -292,6 +483,7 @@ export default function Leaderboard() {
               </p>
 
               <motion.div
+                className="mt-12 mb-12" /* <-- FIX IS HERE: Increased margin for more spacing */
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
@@ -299,10 +491,6 @@ export default function Leaderboard() {
                 <PodiumTop3
                   players={filledPlayers}
                   accent={accentColor}
-                  rewardLabel={rewardLabel}
-                  iconPath={coin}
-                  wagerIcon={coin}
-                  totalPrize={totalPrize}
                 />
               </motion.div>
 
@@ -310,6 +498,7 @@ export default function Leaderboard() {
                 <div
                   className="text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border"
                   style={{
+                    borderColor: activeSite === "chips" ? 'rgba(76, 201, 255, 0.2)' : 'rgba(255, 204, 51, 0.2)',
                     background:
                       activeSite === "chips"
                         ? "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))"
@@ -356,9 +545,7 @@ export default function Leaderboard() {
                       <tr
                         key={p.id}
                         className={`border-t border-white/10 hover:bg-white/5 ${
-                          p.username === "EMPTY"
-                            ? "opacity-50 italic"
-                            : ""
+                          p.username === "EMPTY" ? "opacity-50 italic" : ""
                         }`}
                       >
                         <td className="px-4 py-3">{p.rank}</td>
@@ -369,7 +556,7 @@ export default function Leaderboard() {
                                 ? "/black.png"
                                 : p.profilePicture
                             }
-                            alt="avatar"
+                            alt={p.username !== "EMPTY" ? `${p.username}'s avatar` : ""}
                             className="w-6 h-6 rounded-full object-cover"
                           />
                           {p.username === "EMPTY"
@@ -377,7 +564,7 @@ export default function Leaderboard() {
                             : maskUsername(p.username)}
                         </td>
                         <td className="px-4 py-3">
-                          {p.wageredAmount
+                          {p.wageredAmount > 0
                             ? `$${p.wageredAmount.toFixed(2)}`
                             : "–"}
                         </td>
@@ -385,8 +572,8 @@ export default function Leaderboard() {
                           className="px-4 py-3"
                           style={{ color: accentColor }}
                         >
-                          <span className="flex items-center gap-1">
-                            <img src={coin} alt="coin" className="w-4 h-4" />
+                          <span className="flex items-center gap-1 font-semibold">
+                            {p.reward !== "-" && <img src={coin} alt="" className="w-4 h-4" />}
                             {p.reward || "–"}
                           </span>
                         </td>
@@ -400,51 +587,23 @@ export default function Leaderboard() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
       <footer className="w-full bg-[#140000] border-t border-red-800 pt-8 pb-6 relative z-20 mt-auto">
         <div className="max-w-screen-xl mx-auto flex flex-col items-center justify-center text-center px-4">
           <div className="flex gap-6 mb-4">
-            <a
-              href="https://www.youtube.com/@zynko333/featured"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"
-            >
+            <a href="https://www.youtube.com/@zynko333/featured" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center">
               <img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5" />
             </a>
-
-            <a
-              href="https://kick.com/zynkogambles"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"
-            >
-              <img
-                src="/icons/kick.png"
-                alt="Kick"
-                className="w-5 h-5 filter brightness-0 invert"
-              />
+            <a href="https://kick.com/zynkogambles" target="_blank" rel="noopener noreferrer" aria-label="Kick" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center">
+              <img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert" />
             </a>
-
-            <a
-              href="https://discord.gg/zynko"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"
-            >
+            <a href="https://discord.gg/zynko" target="_blank" rel="noopener noreferrer" aria-label="Discord" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center">
               <img src="/icons/discord.webp" alt="Discord" className="w-5 h-5" />
             </a>
           </div>
-
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
           <p className="text-white/50 text-xs mt-1">
             Made by{" "}
-            <a
-              href="https://x.com/AceSnapGFX"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-red-400"
-            >
+            <a href="https://x.com/AceSnapGFX" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">
               acesnap
             </a>
           </p>

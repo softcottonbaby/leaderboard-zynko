@@ -22,7 +22,7 @@ export default function Navbar() {
             <Link href="/leaderboard" className="hover:text-red-400 transition">Leaderboards</Link>
             <Link href="/bonuses" className="hover:text-red-400 transition">Bonuses</Link>
           </nav>
-        </div>
+        </div>a
         <div className="h-[2px] bg-red-500" />
       </div>
     </header>
