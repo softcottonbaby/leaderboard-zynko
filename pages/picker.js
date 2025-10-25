@@ -52,25 +52,43 @@ export default function Picker() {
 
         setConnectionStatus('Connecting...');
         
+        console.log("Attempting to fetch /api/kick...");
         fetch('/api/kick')
             .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch API route');
+                if (!res.ok) {
+                    console.error('Fetch /api/kick failed:', res.status);
+                    throw new Error(`Failed to fetch API route (status: ${res.status})`);
+                }
+                console.log("Fetch /api/kick successful.");
                 return res.json();
             })
             .then(data => {
                 const chatroomId = data.chatroomId;
                 if (!chatroomId) {
+                    console.error('Chatroom ID not found in API response:', data);
                     setConnectionStatus('Error: Could not find chatroom');
                     return;
                 }
 
+                console.log(`Got chatroom ID: ${chatroomId}. Connecting to Pusher...`);
+
                 const pusher = new Pusher('eb1d5f283081a78b974c', { cluster: 'us1', forceTLS: true });
                 const channel = pusher.subscribe(`chat-room.${chatroomId}`);
                 
-                pusher.connection.bind('connected', () => setConnectionStatus('Connected'));
+                pusher.connection.bind('state_change', (states) => {
+                    console.log("Pusher connection state changed:", states);
+                });
+
+                pusher.connection.bind('connected', () => {
+                    console.log("Pusher connection successful!");
+                    setConnectionStatus('Connected');
+                });
                 pusher.connection.bind('error', (err) => {
                     console.error('Pusher connection error:', err);
                     setConnectionStatus('Connection Error');
+                    if (err.error && err.error.data) {
+                        console.error('Pusher error details:', err.error.data);
+                    }
                 });
 
                 channel.bind('ChatMessageEvent', (data) => {
@@ -377,7 +395,7 @@ export default function Picker() {
                                 <input
                                     type="text"
                                     value={pickerKeyword}
-                                    onChange={(e) => setPickerKeyword(e.targe.value)}
+                                    onChange={(e) => setPickerKeyword(e.target.value)}
                                     className="w-full mt-2 mb-4 px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white text-center font-semibold tracking-wider"
                                 />
 
@@ -403,4 +421,5 @@ export default function Picker() {
         </div>
     );
 }
+
 
