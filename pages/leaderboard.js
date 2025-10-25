@@ -251,13 +251,28 @@ export default function Leaderboard() {
 
   useEffect(() => { activeSite === "csgold" ? fetchCsgold() : fetchChips(); }, [activeSite]);
 
-  const totalSlots = 9;
-  const filledPlayers = [...players];
-  if (players.length < totalSlots) {
-    for (let i = players.length; i < totalSlots; i++) {
-      filledPlayers.push({ id: `empty-${i + 1}`, rank: i + 1, username: "EMPTY", profilePicture: "/default-avatar.png", wageredAmount: 0, reward: "-" });
-    }
+  // Limit leaderboard to 11 total slots max
+const totalSlots = 11;
+
+// Trim players if there are too many
+const limitedPlayers = players.slice(0, totalSlots);
+
+// Fill up with EMPTY slots if fewer than 11
+const filledPlayers = [...limitedPlayers];
+if (filledPlayers.length < totalSlots) {
+  for (let i = filledPlayers.length; i < totalSlots; i++) {
+    filledPlayers.push({
+      id: `empty-${i + 1}`,
+      rank: i + 1,
+      username: "EMPTY",
+      profilePicture: "/default-avatar.png",
+      wageredAmount: 0,
+      reward: "-",
+    });
   }
+}
+
+
 
   const rest = filledPlayers.slice(3);
 
