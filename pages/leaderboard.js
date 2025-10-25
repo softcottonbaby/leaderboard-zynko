@@ -304,17 +304,39 @@ export default function Leaderboard() {
         </nav>
 
         <div className="flex justify-center mb-10 mt-4">
-          <div className="flex bg-[#1c1c1c] rounded-full p-1 shadow-inner gap-2">
-            {["csgold", "chips"].map((site) => (
-              // --- ANIMATION IDEA 2: Updated tab switcher logic ---
-              <div key={site} onClick={() => setActiveSite(site)} className={`relative flex items-center justify-center px-5 py-2 rounded-full cursor-pointer transition-colors duration-150 ${activeSite !== site ? "hover:bg-[#3a3a3a]" : ""}`}>
-                {activeSite === site && (
-                  <motion.div layoutId="activeTab" className="absolute inset-0 bg-[#2e2e2e] rounded-full" style={{ zIndex: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
-                )}
-                <img src={site === "chips" ? "/chips/chips-white.svg" : "/csgold/csgold.png"} alt={site} className={`relative h-6 w-auto ${site === "chips" ? "h-[17px]" : ""}`} style={{ zIndex: 1 }}/>
-              </div>
-            ))}
-          </div>
+         {["csgold", "chips"].map((site) => {
+  const isDisabled = site === "csgold"; // disable CSGOLD
+  return (
+    <div
+      key={site}
+      onClick={() => !isDisabled && setActiveSite(site)}
+      className={`relative flex items-center justify-center px-5 py-2 rounded-full transition-colors duration-150 ${
+        isDisabled
+          ? "opacity-40 cursor-not-allowed"
+          : "cursor-pointer hover:bg-[#3a3a3a]"
+      }`}
+      title={isDisabled ? "Coming soon!" : ""}
+    >
+      {!isDisabled && activeSite === site && (
+        <motion.div
+          layoutId="activeTab"
+          className="absolute inset-0 bg-[#2e2e2e] rounded-full"
+          style={{ zIndex: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        />
+      )}
+      <img
+        src={site === "chips" ? "/chips/chips-white.svg" : "/csgold/csgold.png"}
+        alt={site}
+        className={`relative h-6 w-auto ${site === "chips" ? "h-[17px]" : ""} ${
+          isDisabled ? "grayscale" : ""
+        }`}
+        style={{ zIndex: 1 }}
+      />
+    </div>
+  );
+})}
+
         </div>
 
         <AnimatePresence mode="wait">

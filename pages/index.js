@@ -66,7 +66,7 @@ export default function Home() {
             className="h-24 md:h-32 mb-4 animate-float select-none pointer-events-none"
           />
           <p className="text-[#E2E2E2] text-lg md:text-xl font-medium leading-snug tracking-wide text-center drop-shadow-sm">
-            Rain.gg, Clash.gg, and Csgoroll.com<br />
+            Chips.gg , Csgold.com<br />
             Leaderboards, Exclusive Bonuses & More!
           </p>
           <div className="flex gap-4 mt-6">

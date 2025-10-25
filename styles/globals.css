@@ -275,3 +275,4 @@ footer {
   background-size: 400% 400%; /* bigger to make movement more visible */
   animation: gradientShift 3s ease infinite; /* slightly faster */
 }
+
