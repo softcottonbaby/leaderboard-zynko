@@ -43,6 +43,7 @@ export default function Home() {
               {[
                 { href: '/', label: 'Home' },
                 { href: '/leaderboard', label: 'Leaderboards' },
+                { href: '/picker', label: 'Picker' },
                 { href: '/bonuses', label: 'Bonuses' },
               
 
