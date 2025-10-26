@@ -35,11 +35,6 @@ function PodiumCard({ player, position, accent, coinIcon }) {
   const avatarSize = isPrimary ? "w-28 h-28" : "w-24 h-24";
   const rankSize = isPrimary ? "w-10 h-10 text-lg" : "w-8 h-8 text-base";
 
-  // --- FIX START ---
-  // 1. Define isGold variable
-  const isGold = accent.includes("255,205,60");
-  // --- FIX END ---
-
   const cardStyle = {
     backgroundColor: "rgba(18, 26, 43, 0.4)",
     backdropFilter: "blur(12px)",
@@ -50,8 +45,7 @@ function PodiumCard({ player, position, accent, coinIcon }) {
       : `0 0 15px ${accentGlow}`,
   };
 
-  // Use the isGold variable
-  if (isGold) {
+  if (accent.includes("255,205,60")) {
     cardStyle.backgroundColor = "rgba(40, 30, 10, 0.4)";
   }
 
@@ -76,22 +70,8 @@ function PodiumCard({ player, position, accent, coinIcon }) {
       style={cardStyle}
     >
       <div className={`relative mb-8 ${isPrimary ? "-mt-16" : "-mt-12"}`}>
-        {/* 2. This is the OUTER ring, which was already correct */}
-        <div className={`rounded-full p-[3px]`} style={{ border: `3px solid ${isGold ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}` }}>
-          {/* --- FIX START --- */}
-          {/* 3. This is the INNER border on the image itself */}
-          <img 
-            src={player.avatar || player.profilePicture || "/default-avatar.png"} 
-            alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`} 
-            // Removed: border-2 border-white/50
-            className={`${avatarSize} rounded-full object-cover`} 
-            // Added: dynamic style for the border
-            style={{ 
-              border: `2px solid ${isGold ? "rgba(255, 205, 60, 0.5)" : "rgba(76, 201, 255, 0.5)"}` 
-            }}
-            onError={(e) => (e.target.src = "/default-avatar.png")} 
-          />
-          {/* --- FIX END --- */}
+        <div className={`rounded-full p-[3px]`} style={{ border: `3px solid ${accent.includes("255, 205, 60") ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}` }}>
+          <img src={player.avatar || player.profilePicture || "/default-avatar.png"} alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`} className={`${avatarSize} rounded-full object-cover border-2 border-white/50`} onError={(e) => (e.target.src = "/default-avatar.png")} />
         </div>
         <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${rankSize} rounded-full flex items-center justify-center font-bold border-2 border-white/80`} style={rankBadgeStyle}>
           {position}
@@ -250,14 +230,26 @@ export default function Leaderboard() {
     }
   }
 
+  // --- MODIFIED TIMER LOGIC ---
   useEffect(() => {
-    const endDate = new Date("2025-11-09T20:59:25Z"); // Set to 9-11-2025 (Nov 9)
+    let endDate;
+    
+    if (activeSite === "csgold") {
+      // CSGOLD: Ends November 9, 2025 (as requested)
+      endDate = new Date("2025-11-09T23:59:59Z");
+    } else {
+      // CHIPS: Keeps original timer (October 26, 2025 from user's code)
+      endDate = new Date("2025-10-26T20:59:25Z");
+    }
+
     const interval = setInterval(() => {
       const diff = endDate - new Date();
       if (diff <= 0) {
         setIsEnded(true);
         clearInterval(interval);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 }); // Set to 0
       } else {
+        setIsEnded(false); // Ensure it's not ended
         setTimeLeft({
           days: Math.floor(diff / (1000 * 60 * 60 * 24)),
           hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
@@ -267,7 +259,8 @@ export default function Leaderboard() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeSite]); // <-- ADDED activeSite to dependency array
+  // --- END OF MODIFICATION ---
 
   useEffect(() => { activeSite === "csgold" ? fetchCsgold() : fetchChips(); }, [activeSite]);
 
@@ -339,8 +332,9 @@ if (filledPlayers.length < totalSlots) {
         </nav>
 
         <div className="flex justify-center mb-10 mt-4">
+         {/* --- MODIFIED CSGOLD ACTIVATION --- */}
          {["csgold", "chips"].map((site) => {
-  const isDisabled = false; // Activated csgold
+  const isDisabled = false; // <-- CSGOLD IS NOW ENABLED
   return (
     <div
       key={site}
@@ -371,6 +365,7 @@ if (filledPlayers.length < totalSlots) {
     </div>
   );
 })}
+        {/* --- END OF MODIFICATION --- */}
 
         </div>
 
