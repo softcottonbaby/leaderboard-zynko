@@ -376,6 +376,12 @@ if (filledPlayers.length < totalSlots) {
             </motion.div>
           ) : (
             <motion.section key={activeSite} initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -30 }} transition={{ duration: 0.6, ease: "easeOut" }} className="w-full max-w-5xl px-4 text-white">
+              <p
+                className="text-center font-bold mb-6 uppercase text-sm tracking-wider"
+                style={{ color: accentColor, textShadow: `0 0 10px ${accentColor.replace('0.9', '0.4').replace('0.95', '0.4')}` }}
+              >
+                WAGER ABUSING GETS YOU DISQUALIFIED FROM LEADERBOARD AND REWARDS
+              </p>
               <h2 className="text-3xl md:text-4xl font-bold mb-2 flex justify-center items-center gap-4">
                 <img src={coin} alt="" className="w-8 h-8" />
                 <span className="font-bold bg-clip-text text-transparent animated-gradient" style={{ backgroundImage: activeSite === "chips" ? "linear-gradient(90deg, #4cc9ff, #3c8ef3, #007bff)" : "linear-gradient(90deg, #ffcc33, #d4af37, #b8860b)" }}>
