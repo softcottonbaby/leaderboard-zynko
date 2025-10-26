@@ -35,6 +35,11 @@ function PodiumCard({ player, position, accent, coinIcon }) {
   const avatarSize = isPrimary ? "w-28 h-28" : "w-24 h-24";
   const rankSize = isPrimary ? "w-10 h-10 text-lg" : "w-8 h-8 text-base";
 
+  // --- FIX START ---
+  // 1. Define isGold variable
+  const isGold = accent.includes("255,205,60");
+  // --- FIX END ---
+
   const cardStyle = {
     backgroundColor: "rgba(18, 26, 43, 0.4)",
     backdropFilter: "blur(12px)",
@@ -45,7 +50,8 @@ function PodiumCard({ player, position, accent, coinIcon }) {
       : `0 0 15px ${accentGlow}`,
   };
 
-  if (accent.includes("255,205,60")) {
+  // Use the isGold variable
+  if (isGold) {
     cardStyle.backgroundColor = "rgba(40, 30, 10, 0.4)";
   }
 
@@ -70,8 +76,22 @@ function PodiumCard({ player, position, accent, coinIcon }) {
       style={cardStyle}
     >
       <div className={`relative mb-8 ${isPrimary ? "-mt-16" : "-mt-12"}`}>
-        <div className={`rounded-full p-[3px]`} style={{ border: `3px solid ${accent.includes("255, 205, 60") ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}` }}>
-          <img src={player.avatar || player.profilePicture || "/default-avatar.png"} alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`} className={`${avatarSize} rounded-full object-cover border-2 border-white/50`} onError={(e) => (e.target.src = "/default-avatar.png")} />
+        {/* 2. This is the OUTER ring, which was already correct */}
+        <div className={`rounded-full p-[3px]`} style={{ border: `3px solid ${isGold ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}` }}>
+          {/* --- FIX START --- */}
+          {/* 3. This is the INNER border on the image itself */}
+          <img 
+            src={player.avatar || player.profilePicture || "/default-avatar.png"} 
+            alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`} 
+            // Removed: border-2 border-white/50
+            className={`${avatarSize} rounded-full object-cover`} 
+            // Added: dynamic style for the border
+            style={{ 
+              border: `2px solid ${isGold ? "rgba(255, 205, 60, 0.5)" : "rgba(76, 201, 255, 0.5)"}` 
+            }}
+            onError={(e) => (e.target.src = "/default-avatar.png")} 
+          />
+          {/* --- FIX END --- */}
         </div>
         <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${rankSize} rounded-full flex items-center justify-center font-bold border-2 border-white/80`} style={rankBadgeStyle}>
           {position}
@@ -231,7 +251,7 @@ export default function Leaderboard() {
   }
 
   useEffect(() => {
-    const endDate = new Date("2025-10-26T20:59:25Z");
+    const endDate = new Date("2025-11-09T20:59:25Z"); // Set to 9-11-2025 (Nov 9)
     const interval = setInterval(() => {
       const diff = endDate - new Date();
       if (diff <= 0) {
@@ -320,7 +340,7 @@ if (filledPlayers.length < totalSlots) {
 
         <div className="flex justify-center mb-10 mt-4">
          {["csgold", "chips"].map((site) => {
-  const isDisabled = site === "csgold"; // disable CSGOLD
+  const isDisabled = false; // Activated csgold
   return (
     <div
       key={site}
@@ -407,31 +427,31 @@ if (filledPlayers.length < totalSlots) {
                       const rewardValue = parseFloat(p.reward);
                       const rewardUnit = p.reward?.split(' ').slice(1).join(' ');
                       return (
-                      <motion.tr key={p.id} variants={listItemVariants} className={`border-t border-white/10 hover:bg-white/5 ${p.username === "EMPTY" ? "opacity-50 italic" : ""}`}>
-                        <td className="px-4 py-3">{p.rank}</td>
-                        <td className="px-4 py-3 flex items-center gap-2">
-                          <img src={p.username === "EMPTY" ? "/black.png" : p.profilePicture} alt={p.username !== "EMPTY" ? `${p.username}'s avatar` : ""} className="w-6 h-6 rounded-full object-cover"/>
-                          {p.username === "EMPTY" ? "EMPTY" : maskUsername(p.username)}
-                        </td>
-                        <td className="px-4 py-3">
-                          {p.wageredAmount > 0 ? (
-                            <>
-                              $<Counter to={p.wageredAmount} fractionDigits={2} />
-                            </>
-                          ) : "–"}
-                        </td>
-                        <td className="px-4 py-3" style={{ color: accentColor }}>
-                          <span className="flex items-center gap-1 font-semibold">
-                            {p.reward !== "-" && !isNaN(rewardValue) && rewardValue > 0 ? (
+                        <motion.tr key={p.id} variants={listItemVariants} className={`border-t border-white/10 hover:bg-white/5 ${p.username === "EMPTY" ? "opacity-50 italic" : ""}`}>
+                          <td className="px-4 py-3">{p.rank}</td>
+                          <td className="px-4 py-3 flex items-center gap-2">
+                            <img src={p.username === "EMPTY" ? "/black.png" : p.profilePicture} alt={p.username !== "EMPTY" ? `${p.username}'s avatar` : ""} className="w-6 h-6 rounded-full object-cover"/>
+                            {p.username === "EMPTY" ? "EMPTY" : maskUsername(p.username)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {p.wageredAmount > 0 ? (
                               <>
-                                <img src={coin} alt="" className="w-4 h-4" />
-                                <Counter to={rewardValue} fractionDigits={rewardUnit === 'USDT' ? 2 : 0} /> {rewardUnit}
+                                $<Counter to={p.wageredAmount} fractionDigits={2} />
                               </>
                             ) : "–"}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    )})}
+                          </td>
+                          <td className="px-4 py-3" style={{ color: accentColor }}>
+                            <span className="flex items-center gap-1 font-semibold">
+                              {p.reward !== "-" && !isNaN(rewardValue) && rewardValue > 0 ? (
+                                <>
+                                  <img src={coin} alt="" className="w-4 h-4" />
+                                  <Counter to={rewardValue} fractionDigits={rewardUnit === 'USDT' ? 2 : 0} /> {rewardUnit}
+                                </>
+                              ) : "–"}
+                            </span>
+                          </td>
+                        </motion.tr>
+                      )})}
                   </motion.tbody>
                 </table>
               </div>

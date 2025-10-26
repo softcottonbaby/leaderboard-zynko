@@ -76,6 +76,9 @@ function PodiumCard({ player, position, accent, coinIcon }) { // 1. Accept the c
   const avatarSize = isPrimary ? "w-28 h-28" : "w-24 h-24";
   const rankSize = isPrimary ? "w-10 h-10 text-lg" : "w-8 h-8 text-base";
 
+  // Check for the gold color string
+  const isGold = accent.includes("255,205,60");
+
   const cardStyle = {
     backgroundColor: "rgba(18, 26, 43, 0.4)",
     backdropFilter: "blur(12px)",
@@ -86,7 +89,7 @@ function PodiumCard({ player, position, accent, coinIcon }) { // 1. Accept the c
       : `0 0 15px ${accentGlow}`,
   };
 
-  if (accent.includes("255, 205, 60")) {
+  if (isGold) {
     cardStyle.backgroundColor = "rgba(40, 30, 10, 0.4)";
   }
 
@@ -127,13 +130,21 @@ function PodiumCard({ player, position, accent, coinIcon }) { // 1. Accept the c
         <div
           className={`rounded-full p-[3px]`}
           style={{
-            border: `3px solid ${accent.includes("255, 205, 60") ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}`
+            // This is the OUTER border
+            border: `3px solid ${isGold ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}`
           }}
         >
           <img
             src={player.avatar || player.profilePicture || "/default-avatar.png"}
             alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`}
-            className={`${avatarSize} rounded-full object-cover border-2 border-white/50`}
+            // --- THIS IS THE FIX ---
+            // Removed static Tailwind border classes
+            className={`${avatarSize} rounded-full object-cover`}
+            // Added dynamic inline style for the INNER border
+            style={{
+              border: `2px solid ${isGold ? "rgba(255, 205, 60, 0.5)" : "rgba(76, 201, 255, 0.5)"}`
+            }}
+            // --- END OF FIX ---
             onError={(e) => (e.target.src = "/default-avatar.png")}
           />
         </div>
