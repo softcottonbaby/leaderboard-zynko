@@ -32,7 +32,7 @@ export default function Bonuses() {
     // 🔴 Flags to show/hide each bonus
     const showBonuses = {
         clash: false, // set to true to show Clash.gg bonus
-        chips: true,  // set to true to show Chips.gg bonus
+        chips: false,  // set to true to show Chips.gg bonus
     };
 
     const bonusSites = [

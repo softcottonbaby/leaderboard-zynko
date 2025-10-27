@@ -70,7 +70,8 @@ function PodiumCard({ player, position, accent, coinIcon }) {
       style={cardStyle}
     >
       <div className={`relative mb-8 ${isPrimary ? "-mt-16" : "-mt-12"}`}>
-        <div className={`rounded-full p-[3px]`} style={{ border: `3px solid ${accent.includes("255, 205, 60") ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}` }}>
+        {/* --- MODIFIED BORDER CHECK --- */}
+        <div className={`rounded-full p-[3px]`} style={{ border: `3px solid ${accent.includes("255,205,60") ? "rgba(255, 205, 60, 0.7)" : "rgba(76, 201, 255, 0.7)"}` }}>
           <img src={player.avatar || player.profilePicture || "/default-avatar.png"} alt={isEmpty ? "Empty Slot" : `${player.username}'s avatar`} className={`${avatarSize} rounded-full object-cover border-2 border-white/50`} onError={(e) => (e.target.src = "/default-avatar.png")} />
         </div>
         <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${rankSize} rounded-full flex items-center justify-center font-bold border-2 border-white/80`} style={rankBadgeStyle}>
@@ -140,9 +141,18 @@ export default function Leaderboard() {
   const [players, setPlayers] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isEnded, setIsEnded] = useState(false);
-  const [activeSite, setActiveSite] = useState("chips");
+  const [activeSite, setActiveSite] = useState("csgold"); 
 
-  const manualCsgoldPrizes = { 1: 300, 2: 200, 3: 100, 4: 50, 5: 25, 6: 15, 7: 10 };
+  const manualCsgoldPrizes = {
+    1: 300,
+    2: 175,
+    3: 100,
+    4: 75,
+    5: 50,
+    6: 25,
+    7: 15,
+    8: 10
+  };
 
   function maskUsername(name) {
     if (!name || name === "EMPTY" || name === "Anonymous") return name;
@@ -164,7 +174,7 @@ export default function Leaderboard() {
             username: p.isAnon ? "Anonymous" : p.username || "Anonymous",
             profilePicture: p.avatar || "/default-avatar.png",
             wageredAmount: parseFloat(p.totalAmount || 0),
-            reward: rank <= 7 ? `${manualCsgoldPrizes[rank]} Coins` : "-",
+            reward: rank <= 8 ? `${manualCsgoldPrizes[rank]} Coins` : "-",
           };
         });
         setPlayers(formatted);
@@ -179,49 +189,7 @@ export default function Leaderboard() {
   async function fetchChips(promotionId = "99SRVGQMNQ1BRD10R7DLTU") {
     try {
       setLoading(true);
-      const prefixed = promotionId.startsWith("promotion:")
-        ? promotionId
-        : `promotion:${promotionId}`;
-      const res = await fetch(
-        `/api/chips?promotionId=${encodeURIComponent(prefixed)}`
-      );
-      const result = await res.json();
-
-      if (!res.ok || !result.success) {
-        console.error("Chips fetch failed:", result);
-        return setPlayers([]);
-      }
-
-      const leaderboard = Array.isArray(result.data)
-        ? result.data
-        : result.data?.data || [];
-
-      const formatted = leaderboard.map((p, i) => {
-        const rank = p.rank || i + 1;
-        const wageredRaw = parseFloat(p.wagered || p.score || 0);
-        const wagered = isNaN(wageredRaw) ? 0 : wageredRaw / 1e6;
-
-        const prizeRaw = parseFloat(p.prize?.amount || 0);
-        const prize = isNaN(prizeRaw) ? 0 : prizeRaw / 1e6;
-        const prizeCurrency = p.prize?.currency?.toUpperCase() || "USDT";
-
-        return {
-          id: p.userid || `anon-${i}`,
-          rank,
-          username: p.player?.username || "Anonymous",
-          profilePicture: p.player?.avatar || "/chips/default-avatar.png",
-          wageredAmount: wagered,
-          reward:
-            prize > 0
-              ? `${prize.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} ${prizeCurrency}`
-              : "-",
-        };
-      });
-
-      setPlayers(formatted);
+      setPlayers([]);
     } catch (err) {
       console.error("Error parsing Chips leaderboard:", err);
       setPlayers([]);
@@ -259,10 +227,16 @@ export default function Leaderboard() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeSite]); // <-- ADDED activeSite to dependency array
+  }, [activeSite]); 
   // --- END OF MODIFICATION ---
 
-  useEffect(() => { activeSite === "csgold" ? fetchCsgold() : fetchChips(); }, [activeSite]);
+  useEffect(() => { 
+    if (activeSite === "csgold") {
+      fetchCsgold();
+    } else {
+      setPlayers([]); // Default to empty
+    }
+  }, [activeSite]);
 
   // Limit leaderboard to 11 total slots max
 const totalSlots = 11;
@@ -270,20 +244,30 @@ const totalSlots = 11;
 // Trim players if there are too many
 const limitedPlayers = players.slice(0, totalSlots);
 
+// --- MODIFIED LOGIC TO FILL EMPTY SLOTS WITH PRIZES ---
 // Fill up with EMPTY slots if fewer than 11
 const filledPlayers = [...limitedPlayers];
 if (filledPlayers.length < totalSlots) {
   for (let i = filledPlayers.length; i < totalSlots; i++) {
+    const rank = i + 1; // Get the rank for this empty slot
+    let emptyReward = "-"; // Default reward
+
+    // Check if it's csgold and if this rank has a defined prize
+    if (activeSite === "csgold" && manualCsgoldPrizes[rank]) {
+      emptyReward = `${manualCsgoldPrizes[rank]} Coins`;
+    }
+
     filledPlayers.push({
-      id: `empty-${i + 1}`,
-      rank: i + 1,
+      id: `empty-${rank}`,
+      rank: rank,
       username: "EMPTY",
       profilePicture: "/default-avatar.png",
       wageredAmount: 0,
-      reward: "-",
+      reward: emptyReward, // Use the new reward variable
     });
   }
 }
+// --- END OF MODIFICATION ---
 
 
 
@@ -295,7 +279,6 @@ if (filledPlayers.length < totalSlots) {
   const accentColor = activeSite === "chips" ? "rgba(76,201,255,0.9)" : "rgba(255,205,60,0.95)";
   const totalPrize = activeSite === "chips" ? "2000" : "750";
   
-  // --- ANIMATION IDEA 1: Variants for staggered table rows ---
   const listContainerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
@@ -331,10 +314,10 @@ if (filledPlayers.length < totalSlots) {
           </div>
         </nav>
 
+        {/* --- MODIFIED Site Switcher (Chips.gg removed) --- */}
         <div className="flex justify-center mb-10 mt-4">
-         {/* --- MODIFIED CSGOLD ACTIVATION --- */}
-         {["csgold", "chips"].map((site) => {
-  const isDisabled = false; // <-- CSGOLD IS NOW ENABLED
+         {["csgold"].map((site) => {
+  const isDisabled = false; 
   return (
     <div
       key={site}
@@ -365,9 +348,9 @@ if (filledPlayers.length < totalSlots) {
     </div>
   );
 })}
-        {/* --- END OF MODIFICATION --- */}
-
         </div>
+        {/* --- END OF Site Switcher --- */}
+
 
         <AnimatePresence mode="wait">
           {loading ? ( <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} className="flex flex-col items-center justify-center h-[400px] w-full">
@@ -403,6 +386,7 @@ if (filledPlayers.length < totalSlots) {
                       <div key={u} className="text-center">
                         <p>{String(timeLeft[u]).padStart(2, "0")}</p>
                         <p className="text-xs text-white/50">{u.toUpperCase()}</p>
+
                       </div>
                     ))}
                   </div>
@@ -448,7 +432,7 @@ if (filledPlayers.length < totalSlots) {
                                   <img src={coin} alt="" className="w-4 h-4" />
                                   <Counter to={rewardValue} fractionDigits={rewardUnit === 'USDT' ? 2 : 0} /> {rewardUnit}
                                 </>
-                              ) : "–"}
+                              ) : (p.reward !== "-" ? p.reward : "–")}
                             </span>
                           </td>
                         </motion.tr>
