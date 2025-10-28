@@ -276,3 +276,22 @@ footer {
   animation: gradientShift 3s ease infinite; /* slightly faster */
 }
 
+/* Added for gold theme */
+  .border-gold-faint {
+    border-color: rgba(255, 204, 51, 0.2);
+  }
+  .hover\:bg-gold-faint:hover {
+    background-color: rgba(255, 204, 51, 0.05);
+  }
+  .text-gold-main {
+    color: rgba(255,205,60,0.95);
+  }
+  .bg-gold-dark {
+    background-color: #2a210f; /* A warmer, dark gold background */
+  }
+  .bg-gold-timer {
+    background: linear-gradient(135deg, rgba(255,204,51,0.1), rgba(212,175,55,0.15));
+  }
+  .border-gold-timer {
+    border-color: rgba(255, 204, 51, 0.4);
+  }

@@ -307,10 +307,12 @@ if (filledPlayers.length < totalSlots) {
     <div className="flex flex-col min-h-screen overflow-x-hidden relative select-none bg-black">
       <AnimatePresence>
         {activeSite === "chips" && ( <motion.div key="chips-bg" className="absolute inset-0 w-full h-full z-0 pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7, ease: "easeInOut" }} style={{ backgroundColor: "#080c18", backgroundImage: `linear-gradient(to right, rgba(76, 201, 255, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(76, 201, 255, 0.1) 1px, transparent 1px)`, backgroundSize: "35px 35px" }} /> )}
-        {activeSite === "csgold" && ( <motion.div key="csgold-bg" className="absolute inset-0 w-full h-full z-0 pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7, ease: "easeInOut" }} style={{ backgroundColor: "#1c160c", backgroundImage: `linear-gradient(to right, rgba(255, 205, 60, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 205, 60, 0.1) 1px, transparent 1px)`, backgroundSize: "35px 35px" }} /> )}
+        {/* --- GOLD THEME CHANGE --- */}
+        {activeSite === "csgold" && ( <motion.div key="csgold-bg" className="absolute inset-0 w-full h-full z-0 pointer-events-none bg-gold-dark" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7, ease: "easeInOut" }} style={{ backgroundImage: `linear-gradient(to right, rgba(255, 205, 60, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 205, 60, 0.1) 1px, transparent 1px)`, backgroundSize: "35px 35px" }} /> )}
       </AnimatePresence>
 
-      <div className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"}`} style={{ background: activeSite === "chips" ? "radial-gradient(circle at 50% 100%, rgba(76,201,255,0.5) 0%, rgba(0,0,0,0) 80%)" : "radial-gradient(circle at 50% 100%, rgba(255,204,51,0.45) 0%, rgba(0,0,0,0) 80%)" }}></div>
+      {/* --- GOLD THEME CHANGE --- */}
+      <div className={`fixed bottom-0 left-0 w-full h-[700px] pointer-events-none z-0 transition-all duration-1000 ease-in-out ${activeSite === "chips" ? "animate-pulse-blue" : "animate-pulse-gold"}`} style={{ background: activeSite === "chips" ? "radial-gradient(circle at 50% 100%, rgba(76,201,255,0.5) 0%, rgba(0,0,0,0) 80%)" : "radial-gradient(circle at 50% 100%, rgba(255,204,51,0.55) 0%, rgba(0,0,0,0) 80%)" }}></div>
 
       <main className="flex-grow w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
         <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-[#0a0000] text-white">
@@ -382,7 +384,8 @@ if (filledPlayers.length < totalSlots) {
               </p>
               <h2 className="text-3xl md:text-4xl font-bold mb-2 flex justify-center items-center gap-4">
                 <img src={coin} alt="" className="w-8 h-8" />
-                <span className="font-bold bg-clip-text text-transparent animated-gradient" style={{ backgroundImage: activeSite === "chips" ? "linear-gradient(90deg, #4cc9ff, #3c8ef3, #007bff)" : "linear-gradient(90deg, #ffcc33, #d4af37, #b8860b)" }}>
+                {/* --- GOLD THEME CHANGE --- */}
+                <span className="font-bold bg-clip-text text-transparent animated-gradient" style={{ backgroundImage: activeSite === "chips" ? "linear-gradient(90deg, #4cc9ff, #3c8ef3, #007bff)" : "linear-gradient(90deg, #fff8e1, #ffcc33, #d4af37, #ffcc33, #fff8e1)" }}>
                   {siteName}
                 </span>
                 {totalPrize} {rewardLabel} BI-WEEKLY
@@ -394,7 +397,10 @@ if (filledPlayers.length < totalSlots) {
                 <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
               </motion.div>
 
-              {!isEnded ? (<div className="text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border" style={{ borderColor: activeSite === "chips" ? "rgba(76, 201, 255, 0.2)" : "rgba(255, 204, 51, 0.2)", background: activeSite === "chips" ? "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))" : "linear-gradient(135deg, rgba(255,204,51,0.06), rgba(212,175,55,0.12))"}}>
+              {/* --- GOLD THEME CHANGE --- */}
+              {!isEnded ? (<div className={`text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border ${activeSite === "csgold" ? "bg-gold-timer border-gold-timer" : ""}`}
+                 style={activeSite === "chips" ? { borderColor: "rgba(76, 201, 255, 0.2)", background: "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))" } : {}}
+              >
                   <p className="text-base font-bold mb-2">LEADERBOARD ENDS IN</p>
                   <div className="flex justify-center gap-4 text-lg font-mono">
                     {["days", "hours", "minutes", "seconds"].map((u) => (
@@ -414,7 +420,8 @@ if (filledPlayers.length < totalSlots) {
 
               <div className="overflow-x-auto bg-black/40 rounded-lg transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]">
                 <table className="min-w-full text-left text-sm table-auto">
-                  <thead className="text-white/70 border-b border-white/10">
+                  {/* --- GOLD THEME CHANGE --- */}
+                  <thead className={`text-white/70 border-b ${activeSite === "csgold" ? "border-gold-faint" : "border-white/10"}`}>
                     <tr>
                       <th className="px-4 py-2">RANK</th>
                       <th className="px-4 py-2">PLAYER</th>
@@ -427,7 +434,8 @@ if (filledPlayers.length < totalSlots) {
                       const rewardValue = parseFloat(p.reward);
                       const rewardUnit = p.reward?.split(' ').slice(1).join(' ');
                       return (
-                        <motion.tr key={p.id} variants={listItemVariants} className={`border-t border-white/10 hover:bg-white/5 ${p.username === "EMPTY" ? "opacity-50 italic" : ""}`}>
+                        /* --- GOLD THEME CHANGE --- */
+                        <motion.tr key={p.id} variants={listItemVariants} className={`border-t ${activeSite === "csgold" ? "border-gold-faint hover:bg-gold-faint" : "border-white/10 hover:bg-white/5"} ${p.username === "EMPTY" ? "opacity-50 italic" : ""}`}>
                           <td className="px-4 py-3">{p.rank}</td>
                           <td className="px-4 py-3 flex items-center gap-2">
                             <img src={p.username === "EMPTY" ? "/black.png" : p.profilePicture} alt={p.username !== "EMPTY" ? `${p.username}'s avatar` : ""} className="w-6 h-6 rounded-full object-cover"/>
