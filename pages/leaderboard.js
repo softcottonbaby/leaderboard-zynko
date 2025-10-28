@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, animate } from "framer-motion";
 
 // --- ANIMATION IDEA 3: Reusable Counter Component ---
@@ -135,6 +135,18 @@ function PodiumTop3({ players = [], accent, coinIcon }) {
   );
 }
 
+// --- MOVED PRIZES OUTSIDE COMPONENT ---
+const manualCsgoldPrizes = {
+  1: 300,
+  2: 175,
+  3: 100,
+  4: 75,
+  5: 50,
+  6: 25,
+  7: 15,
+  8: 10
+};
+
 
 export default function Leaderboard() {
   const [loading, setLoading] = useState(false);
@@ -143,24 +155,14 @@ export default function Leaderboard() {
   const [isEnded, setIsEnded] = useState(false);
   const [activeSite, setActiveSite] = useState("csgold"); 
 
-  const manualCsgoldPrizes = {
-    1: 300,
-    2: 175,
-    3: 100,
-    4: 75,
-    5: 50,
-    6: 25,
-    7: 15,
-    8: 10
-  };
-
   function maskUsername(name) {
     if (!name || name === "EMPTY" || name === "Anonymous") return name;
     if (name.length <= 4) return name[0] + "***" + name.slice(-1);
     return name.slice(0, 2) + "***" + name.slice(-2);
   }
 
-  async function fetchCsgold() {
+  // --- WRAP IN useCallback ---
+  const fetchCsgold = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/csgold");
@@ -184,9 +186,10 @@ export default function Leaderboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []); // Empty dependency array as manualCsgoldPrizes is now a stable constant
 
-  async function fetchChips(promotionId = "99SRVGQMNQ1BRD10R7DLTU") {
+  // --- WRAP IN useCallback ---
+  const fetchChips = useCallback(async (promotionId = "99SRVGQMNQ1BRD10R7DLTU") => {
     try {
       setLoading(true);
       setPlayers([]);
@@ -196,7 +199,7 @@ export default function Leaderboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []); // Empty dependency array
 
   // --- MODIFIED TIMER LOGIC ---
   useEffect(() => {
@@ -230,13 +233,25 @@ export default function Leaderboard() {
   }, [activeSite]); 
   // --- END OF MODIFICATION ---
 
-  useEffect(() => { 
-    if (activeSite === "csgold") {
-      fetchCsgold();
-    } else {
-      setPlayers([]); // Default to empty
-    }
-  }, [activeSite]);
+  // --- REPLACED useEffect FOR AUTO-REFRESH ---
+  useEffect(() => {
+    const fetchData = () => {
+      if (activeSite === "csgold") {
+        fetchCsgold();
+      } else {
+        // fetchChips() // Add this back when ready to implement chips
+        setPlayers([]); // Default to empty
+      }
+    };
+
+    fetchData(); // Fetch data immediately on load/site change
+    
+    const intervalId = setInterval(fetchData, 10000); // Set interval to refetch every 10 seconds
+
+    return () => clearInterval(intervalId); // Clear interval on cleanup
+    
+  }, [activeSite, fetchCsgold, fetchChips]); // Add useCallback functions to dependency array
+  // --- END OF REPLACEMENT ---
 
   // Limit leaderboard to 11 total slots max
 const totalSlots = 11;
