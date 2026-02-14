@@ -131,9 +131,9 @@ export default function Leaderboard() {
 
   const fetchCsdrop = useCallback(async () => {
     setError(null);
-    const endDateObj = new Date('2026-02-28T23:59:59Z');
-    const startDateObj = new Date(endDateObj);
-    startDateObj.setDate(endDateObj.getDate() - 14);
+    const endDateObj = new Date(); // Right now
+    const startDateObj = new Date(); 
+    startDateObj.setDate(endDateObj.getDate() - 14); // Look back 14 days
 
     try {
       const response = await fetch(CONFIG.API_URL, {
