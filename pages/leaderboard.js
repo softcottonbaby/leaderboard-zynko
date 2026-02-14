@@ -99,6 +99,7 @@ function PodiumCard({ player, position, accent, coinIcon }) {
 
 // --- 5. PODIUM WRAPPER ---
 function PodiumTop3({ players = [], accent, coinIcon }) {
+  // Always ensure we have at least 3 objects to render, even if empty
   const emptyPlayer = { username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0, reward: null };
   const topThree = [ players[0] || emptyPlayer, players[1] || emptyPlayer, players[2] || emptyPlayer ];
 
@@ -109,12 +110,15 @@ function PodiumTop3({ players = [], accent, coinIcon }) {
 
   return (
     <div className="flex flex-col items-center gap-16 md:flex-row md:justify-center md:items-end md:gap-6">
+      {/* 2nd Place */}
       <motion.div custom={0} initial="hidden" animate="visible" variants={podiumVariants} className="md:order-1">
         <PodiumCard player={topThree[1]} position={2} accent={accent} coinIcon={coinIcon} />
       </motion.div>
+      {/* 1st Place */}
       <motion.div custom={1} initial="hidden" animate="visible" variants={podiumVariants} className="md:order-2">
         <PodiumCard player={topThree[0]} position={1} accent={accent} coinIcon={coinIcon} />
       </motion.div>
+      {/* 3rd Place */}
       <motion.div custom={2} initial="hidden" animate="visible" variants={podiumVariants} className="md:order-3">
         <PodiumCard player={topThree[2]} position={3} accent={accent} coinIcon={coinIcon} />
       </motion.div>
@@ -124,15 +128,14 @@ function PodiumTop3({ players = [], accent, coinIcon }) {
 
 // --- 6. MAIN LEADERBOARD ---
 export default function Leaderboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [loading, setLoading] = useState(true); 
 
   const fetchCsdrop = useCallback(async () => {
-    setError(null);
-    const endDateObj = new Date(); // Right now
-    const startDateObj = new Date(); 
+    // FIX: Set dates to CURRENT time to find active race
+    const endDateObj = new Date(); // Today
+    const startDateObj = new Date();
     startDateObj.setDate(endDateObj.getDate() - 14); // Look back 14 days
 
     try {
@@ -151,9 +154,7 @@ export default function Leaderboard() {
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error("API Failed");
 
       const data = await response.json();
       const rawList = data.rankings || data.players || [];
@@ -173,13 +174,11 @@ export default function Leaderboard() {
       });
 
       setPlayers(formatted);
-      setLoading(false);
-
     } catch (err) {
-      console.error("CSDrop Fetch Failed:", err);
-      setError("Unable to load live data (Check console/Network).");
-      setLoading(false);
-      setPlayers([]); 
+      console.log("Fetch failed or no data. Showing empty board.");
+      setPlayers([]); // Use empty array if fetch fails
+    } finally {
+        setLoading(false); // ALWAYS finish loading so board shows
     }
   }, []);
 
@@ -191,6 +190,7 @@ export default function Leaderboard() {
 
   // Timer
   useEffect(() => {
+    // Hardcode specific end date for display
     const endDate = new Date("2026-02-28T23:59:59Z");
     const interval = setInterval(() => {
       const diff = endDate - new Date();
@@ -209,22 +209,20 @@ export default function Leaderboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fill Empty Slots
+  // --- FORCE FILL EMPTY SLOTS ---
+  // This runs regardless of API success/failure so the board is NEVER blank
   const totalSlots = 11;
   const filledPlayers = [...players];
-  if (!error && !loading) {
-    while (filledPlayers.length < totalSlots) {
-        const rank = filledPlayers.length + 1;
-        filledPlayers.push({
-        id: `empty-${rank}`, rank, username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0,
-        reward: manualCsdropPrizes[rank] ? `${manualCsdropPrizes[rank]}` : "-",
-        });
-    }
+  while (filledPlayers.length < totalSlots) {
+    const rank = filledPlayers.length + 1;
+    filledPlayers.push({
+      id: `empty-${rank}`, rank, username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0,
+      reward: manualCsdropPrizes[rank] ? `${manualCsdropPrizes[rank]}` : "-",
+    });
   }
 
-  // --- IMAGES UPDATED HERE ---
   const accentColor = "rgba(59, 130, 246, 0.95)";
-  const coin = "/csgold/app-coin-blue.webp"; // UPDATED COIN
+  const coin = "/csgold/app-coin-blue.webp";
   
   const listContainerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07 } } };
   const listItemVariants = { hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } };
@@ -240,7 +238,6 @@ export default function Leaderboard() {
         {/* Navbar */}
         <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-black/60 backdrop-blur-lg text-white border-b border-white/5">
           <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
-            {/* UPDATED LOGO HERE */}
             <img src="/csgold/logo_csdrop.webp" alt="CSDrop Logo" className="h-8 md:h-10" />
             
             <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
@@ -261,70 +258,49 @@ export default function Leaderboard() {
              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3b82f6] via-[#60a5fa] to-[#3b82f6]">CSDROP.COM</span> 1,000 BALANCE BI-WEEKLY
           </h2>
 
-          {/* ERROR STATE */}
-          {error && (
-            <div className="p-4 mb-8 border border-red-500 bg-red-500/10 rounded-lg text-red-200">
-              <p className="font-bold">Error:</p>
-              <p>{error}</p>
-              <p className="text-sm mt-1 opacity-75">(Push to Vercel/Production to bypass Cloudflare block.)</p>
-            </div>
-          )}
+          {/* ALWAYS RENDER THE BOARD, NO LOADING OR ERROR STATES BLOCKING IT */}
+          <motion.div className="mt-12 mb-12" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
+              <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
+          </motion.div>
 
-          {/* LOADING STATE */}
-          {loading && !error && (
-            <div className="flex flex-col items-center justify-center h-64">
-                <div className="w-12 h-12 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
-                <p className="mt-4 text-blue-200 animate-pulse">Connecting to CSDrop...</p>
-            </div>
-          )}
+          <div className="text-white bg-black/60 border border-[#3b82f6]/20 rounded-xl py-6 px-10 mb-12 max-w-md mx-auto backdrop-blur-md">
+              <p className="text-xs font-bold mb-3 text-[#3b82f6] uppercase tracking-widest text-center">Leaderboard Ends In</p>
+              <div className="flex justify-center gap-5 text-2xl font-mono">
+              {["days", "hours", "minutes", "seconds"].map(u => (
+                  <div key={u} className="text-center">
+                  <p className="font-bold">{String(timeLeft[u]).padStart(2, '0')}</p>
+                  <p className="text-[10px] text-white/40 uppercase">{u}</p>
+                  </div>
+              ))}
+              </div>
+          </div>
 
-          {/* SUCCESS STATE */}
-          {!loading && !error && (
-            <>
-                <motion.div className="mt-12 mb-12" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
-                    <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
-                </motion.div>
-
-                <div className="text-white bg-black/60 border border-[#3b82f6]/20 rounded-xl py-6 px-10 mb-12 max-w-md mx-auto backdrop-blur-md">
-                    <p className="text-xs font-bold mb-3 text-[#3b82f6] uppercase tracking-widest text-center">Leaderboard Ends In</p>
-                    <div className="flex justify-center gap-5 text-2xl font-mono">
-                    {["days", "hours", "minutes", "seconds"].map(u => (
-                        <div key={u} className="text-center">
-                        <p className="font-bold">{String(timeLeft[u]).padStart(2, '0')}</p>
-                        <p className="text-[10px] text-white/40 uppercase">{u}</p>
-                        </div>
-                    ))}
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto bg-black/40 rounded-lg border border-[#3b82f6]/10 backdrop-blur-sm shadow-2xl">
-                    <table className="min-w-full text-left text-sm">
-                    <thead className="text-white/50 border-b border-[#3b82f6]/10">
-                        <tr><th className="px-6 py-4">RANK</th><th className="px-6 py-4">PLAYER</th><th className="px-6 py-4">WAGERED</th><th className="px-6 py-4">REWARD</th></tr>
-                    </thead>
-                    <motion.tbody variants={listContainerVariants} initial="hidden" animate="visible">
-                        {filledPlayers.slice(3).map((p) => (
-                        <motion.tr key={p.id} variants={listItemVariants} className={`border-t border-white/5 hover:bg-[#3b82f6]/5 transition-colors ${p.username === "EMPTY" ? "opacity-40 italic" : ""}`}>
-                            <td className="px-6 py-4">{p.rank}</td>
-                            <td className="px-6 py-4 flex items-center gap-3">
-                            <img src={p.avatar} className="w-8 h-8 rounded-full border border-white/10" alt="" onError={(e) => (e.target.src = "/default-avatar.png")} />
-                            {p.username}
-                            </td>
-                            <td className="px-6 py-4 text-white/80">${p.wageredAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td className="px-6 py-4 font-bold text-[#3b82f6]">
-                                {p.reward !== "-" ? (
-                                <span className="flex items-center gap-1">
-                                    <img src={coin} alt="C" className="w-4 h-4"/> {p.reward}
-                                </span>
-                                ) : "-"}
-                            </td>
-                        </motion.tr>
-                        ))}
-                    </motion.tbody>
-                    </table>
-                </div>
-            </>
-          )}
+          <div className="overflow-x-auto bg-black/40 rounded-lg border border-[#3b82f6]/10 backdrop-blur-sm shadow-2xl">
+              <table className="min-w-full text-left text-sm">
+              <thead className="text-white/50 border-b border-[#3b82f6]/10">
+                  <tr><th className="px-6 py-4">RANK</th><th className="px-6 py-4">PLAYER</th><th className="px-6 py-4">WAGERED</th><th className="px-6 py-4">REWARD</th></tr>
+              </thead>
+              <motion.tbody variants={listContainerVariants} initial="hidden" animate="visible">
+                  {filledPlayers.slice(3).map((p) => (
+                  <motion.tr key={p.id} variants={listItemVariants} className={`border-t border-white/5 hover:bg-[#3b82f6]/5 transition-colors ${p.username === "EMPTY" ? "opacity-40 italic" : ""}`}>
+                      <td className="px-6 py-4">{p.rank}</td>
+                      <td className="px-6 py-4 flex items-center gap-3">
+                      <img src={p.avatar} className="w-8 h-8 rounded-full border border-white/10" alt="" onError={(e) => (e.target.src = "/default-avatar.png")} />
+                      {p.username}
+                      </td>
+                      <td className="px-6 py-4 text-white/80">${p.wageredAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 font-bold text-[#3b82f6]">
+                          {p.reward !== "-" ? (
+                          <span className="flex items-center gap-1">
+                              <img src={coin} alt="C" className="w-4 h-4"/> {p.reward}
+                          </span>
+                          ) : "-"}
+                      </td>
+                  </motion.tr>
+                  ))}
+              </motion.tbody>
+              </table>
+          </div>
 
         </section>
       </main>
