@@ -397,26 +397,44 @@ if (filledPlayers.length < totalSlots) {
                 <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
               </motion.div>
 
-              {/* --- GOLD THEME CHANGE --- */}
-              {!isEnded ? (<div className={`text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border ${activeSite === "csgold" ? "bg-gold-timer border-gold-timer" : ""}`}
-                 style={activeSite === "chips" ? { borderColor: "rgba(76, 201, 255, 0.2)", background: "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))" } : {}}
-              >
-                  <p className="text-base font-bold mb-2">LEADERBOARD ENDS IN</p>
-                  <div className="flex justify-center gap-4 text-lg font-mono">
+              {/* --- START: Modified Original Timer --- */}
+              {!isEnded ? (
+                <div 
+                  className={`text-white rounded-lg py-4 px-6 mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm border ${
+                    activeSite === "csgold" ? "bg-gold-timer border-gold-timer" : ""
+                  }`}
+                  style={activeSite === "chips" ? { 
+                    borderColor: "rgba(76, 201, 255, 0.2)", 
+                    background: "linear-gradient(135deg, rgba(76,201,255,0.06), rgba(0,123,255,0.12))" 
+                  } : {}}
+                >
+                  <p className="text-base font-bold mb-3 text-center">LEADERBOARD ENDS IN</p>
+                  <div className="flex justify-center gap-3 text-lg font-mono">
                     {["days", "hours", "minutes", "seconds"].map((u) => (
-                      <div key={u} className="text-center">
-                        <p>{String(timeLeft[u]).padStart(2, "0")}</p>
+                      <div 
+                        key={u} 
+                        className={`
+                          text-center rounded-lg px-3 py-1 
+                          ${activeSite === "csgold" 
+                            ? "bg-black/30 border border-gold-faint" 
+                            : "bg-black/30 border border-white/20"
+                          }
+                        `}
+                      >
+                        <p className="text-xl font-bold">{String(timeLeft[u]).padStart(2, "0")}</p>
                         <p className="text-xs text-white/50">{u.toUpperCase()}</p>
-
                       </div>
                     ))}
                   </div>
                 </div>
-              ) : ( <div className="text-white border border-white/20 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm">
+              ) : ( 
+                <div className="text-white border border-white/20 rounded-lg py-3 px-5 text-sm mb-6 max-w-md mx-auto shadow-lg backdrop-blur-sm">
                   <p className="font-bold uppercase tracking-wide text-center">LEADERBOARD CONCLUDED</p>
                   <p className="text-xs text-white/80 text-center mt-1">Check Discord for your next chance to win!</p>
                 </div>
               )}
+              {/* --- END: Modified Original Timer --- */}
+
 
               <div className="overflow-x-auto bg-black/40 rounded-lg transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]">
                 <table className="min-w-full text-left text-sm table-auto">
@@ -484,7 +502,7 @@ if (filledPlayers.length < totalSlots) {
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
           <p className="text-white/50 text-xs mt-1">
             Made by{" "}
-            <a href="https://x.com/AceSnapGFX" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">
+            <a href="https.com/AceSnapGFX" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">
               acesnap
             </a>
           </p>

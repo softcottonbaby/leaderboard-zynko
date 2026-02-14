@@ -1,6 +1,23 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+// --- MODIFIED FloatingItem Component ---
+const FloatingItem = ({ src, alt, className, style }) => {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      // 'opacity-0' ensures it's invisible by default, preventing any "flash" or "jump"
+      className={`absolute opacity-0 ${className}`} 
+      style={{
+        ...style, // This lets us pass in custom styles like animationDelay
+        willChange: 'transform, opacity', // A hint for the browser to optimize performance
+      }}
+    />
+  );
+};
+// --- End of Component ---
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
@@ -59,8 +76,31 @@ export default function Home() {
           </div>
         </nav>
 
+       {/* --- FLOATING ITEMS CONTAINER --- */}
+<div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
+  <FloatingItem
+    src="/clash/bombsugar.png"
+    alt="Floating bomb"
+    className="w-44 h-44 top-[25%] left-[20%] animate-fadeIn-float"
+  />
+  <FloatingItem
+    src="/clash/princess.png"
+    alt="Floating princess"
+    className="w-48 h-48 top-[35%] right-[18%] animate-fadeIn-float"
+  />
+  <FloatingItem
+    src="/clash/bombsugar.png"
+    alt="Floating bomb"
+    className="w-40 h-40 top-[75%] left-[22%] animate-fadeIn-float"
+  />
+</div>
+
+        {/* --- END MODIFIED CONTAINER --- */}
+
+
         {/* Hero Section */}
-        <div className="flex flex-col items-center justify-center flex-grow">
+        {/* 'relative z-10' keeps this content layered correctly (now behind the items) */}
+        <div className="flex flex-col items-center justify-center flex-grow relative z-10">
           <img
             src="/logo/logoZynko.webp"
             alt="ZYNKO Logo"
@@ -91,8 +131,9 @@ export default function Home() {
         </div>
 
         {/* Video Grid (conditionally hidden) */}
+        {/* 'relative z-10' keeps this on top as well */}
         {showVideos && (
-          <section className="w-full max-w-6xl px-4 pb-20 mt-10">
+          <section className="w-full max-w-6xl px-4 pb-20 mt-10 relative z-10">
             <h2 className="text-xl md:text-2xl font-bold mb-6 text-white">Latest YouTube Videos</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {videos.length === 0 && (
@@ -165,7 +206,7 @@ export default function Home() {
               href="https://discord.gg/zynko"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify.center"
             >
               <img src="/icons/discord.webp" alt="Discord" className="w-5 h-5" />
             </a>
