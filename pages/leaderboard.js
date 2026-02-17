@@ -99,7 +99,6 @@ function PodiumCard({ player, position, accent, coinIcon }) {
 
 // --- 5. PODIUM WRAPPER ---
 function PodiumTop3({ players = [], accent, coinIcon }) {
-  // Always ensure we have at least 3 objects to render, even if empty
   const emptyPlayer = { username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0, reward: null };
   const topThree = [ players[0] || emptyPlayer, players[1] || emptyPlayer, players[2] || emptyPlayer ];
 
@@ -110,15 +109,12 @@ function PodiumTop3({ players = [], accent, coinIcon }) {
 
   return (
     <div className="flex flex-col items-center gap-16 md:flex-row md:justify-center md:items-end md:gap-6">
-      {/* 2nd Place */}
       <motion.div custom={0} initial="hidden" animate="visible" variants={podiumVariants} className="md:order-1">
         <PodiumCard player={topThree[1]} position={2} accent={accent} coinIcon={coinIcon} />
       </motion.div>
-      {/* 1st Place */}
       <motion.div custom={1} initial="hidden" animate="visible" variants={podiumVariants} className="md:order-2">
         <PodiumCard player={topThree[0]} position={1} accent={accent} coinIcon={coinIcon} />
       </motion.div>
-      {/* 3rd Place */}
       <motion.div custom={2} initial="hidden" animate="visible" variants={podiumVariants} className="md:order-3">
         <PodiumCard player={topThree[2]} position={3} accent={accent} coinIcon={coinIcon} />
       </motion.div>
@@ -132,49 +128,35 @@ export default function Leaderboard() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [loading, setLoading] = useState(true); 
 
-// Inside pages/leaderboard.js
-const fetchCsdrop = useCallback(async () => {
-  try {
-    const response = await fetch('/api/csdrop-leaderboard'); // Must match the filename exactly
-    if (!response.ok) throw new Error("API Route Failed");
+  const fetchCsdrop = useCallback(async () => {
+    try {
+      const response = await fetch('/api/csdrop-leaderboard');
+      if (!response.ok) throw new Error("API Route Failed");
 
-    // Inside fetchCsdrop in pages/leaderboard.js
-// Inside fetchCsdrop in pages/leaderboard.js
-// Inside fetchCsdrop in pages/leaderboard.js
-// Inside pages/leaderboard.js -> fetchCsdrop function
-// Inside pages/leaderboard.js -> fetchCsdrop
-const data = await response.json();
-// The API returns the list in a property called 'rankings' from your proxy
-const rawList = data.rankings || []; 
+      const data = await response.json();
+      const rawList = data.rankings || []; 
 
-const formatted = rawList.map((p) => {
-  // 1. Convert rank to an integer to match manualCsdropPrizes keys (1, 2, 3...)
-  const currentRank = parseInt(p.rank); 
-  
-  // 2. Lookup the prize from your manual list
-  const prize = manualCsdropPrizes[currentRank];
+      const formatted = rawList.map((p) => {
+        const currentRank = parseInt(p.rank); 
+        const prize = manualCsdropPrizes[currentRank];
 
-  return {
-    id: p.user.hash_id,             // Uses hash_id from the new API
-    rank: currentRank,              // Uses the rank from the API
-    username: p.user.name,          // Uses the name inside the user object
-    avatar: p.user.avatar || "/default-avatar.png", // Uses user.avatar
-    wageredAmount: parseFloat(p.total) / 100, // Converts minor units to major units
-    // 3. This ensures the manual prize is used instead of "-"
-    reward: prize ? `${prize}` : "-", 
-  };
-});
+        return {
+          id: p.user.hash_id,
+          rank: currentRank,
+          username: p.user.name,
+          avatar: p.user.avatar || "/default-avatar.png",
+          wageredAmount: parseFloat(p.total) / 100,
+          reward: prize ? `${prize}` : "-", 
+        };
+      });
 
-setPlayers(formatted);
-
-
-    setPlayers(formatted);
-  } catch (err) {
-    console.error("Leaderboard fetch failed:", err);
-  } finally {
-    setLoading(false);
-  }
-}, []);
+      setPlayers(formatted);
+    } catch (err) {
+      console.error("Leaderboard fetch failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchCsdrop();
@@ -182,9 +164,7 @@ setPlayers(formatted);
     return () => clearInterval(intervalId);
   }, [fetchCsdrop]);
 
-  // Timer
   useEffect(() => {
-    // Hardcode specific end date for display
     const endDate = new Date("2026-02-28T23:59:59Z");
     const interval = setInterval(() => {
       const diff = endDate - new Date();
@@ -203,8 +183,6 @@ setPlayers(formatted);
     return () => clearInterval(interval);
   }, []);
 
-  // --- FORCE FILL EMPTY SLOTS ---
-  // This runs regardless of API success/failure so the board is NEVER blank
   const totalSlots = 11;
   const filledPlayers = [...players];
   while (filledPlayers.length < totalSlots) {
@@ -223,17 +201,14 @@ setPlayers(formatted);
 
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden relative select-none bg-black">
-      {/* Backgrounds */}
       <div className="absolute top-0 left-0 w-full h-[850px] pointer-events-none z-0" style={{ background: "radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.25) 0%, rgba(30, 64, 175, 0.1) 40%, rgba(29, 78, 216, 0.03) 65%, rgba(0,0,0,0) 90%)" }} />
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-20" style={{ backgroundImage: `linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
 
       <main className="flex-grow w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
         
-        {/* Navbar */}
         <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-black/60 backdrop-blur-lg text-white border-b border-white/5">
           <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
             <img src="/csgold/logo_csdrop.webp" alt="CSDrop Logo" className="h-8 md:h-10" />
-            
             <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
               {[{ href: "/", label: "Home" }, { href: "/leaderboard", label: "Leaderboard" }, { href: "/bonuses", label: "Bonuses" }].map((i) => (
                 <a key={i.href} href={i.href} className="relative group">
@@ -252,7 +227,6 @@ setPlayers(formatted);
              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#3b82f6] via-[#60a5fa] to-[#3b82f6]">CSDROP.COM</span> 1,000 BALANCE BI-WEEKLY
           </h2>
 
-          {/* ALWAYS RENDER THE BOARD, NO LOADING OR ERROR STATES BLOCKING IT */}
           <motion.div className="mt-12 mb-12" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
               <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
           </motion.div>
@@ -295,7 +269,6 @@ setPlayers(formatted);
               </motion.tbody>
               </table>
           </div>
-
         </section>
       </main>
 
