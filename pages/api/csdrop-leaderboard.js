@@ -1,29 +1,36 @@
-// pages/api/csdrop-leaderboard.js
-export default async function handler(req, res) {
+const fetchCsdrop = useCallback(async () => {
   try {
-    const PUBLIC_KEY = 'IJnsemuVsOqzpaLirMzGwhQbcGedfh';
-    const PRIVATE_KEY = 'eNpecoKkLYFKfmiEqncYKjFbabhfOh';
-
-    const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - (14 * 24 * 60 * 60);
-
-    // Endpoint from documentation: /api/v1/race/affiliates/{publicKey}
-    const url = `https://api.csdrop.com/api/v1/race/affiliates/${PUBLIC_KEY}?start_timestamp=${startTimestamp}&end_timestamp=${endTimestamp}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'X-Private-Key': PRIVATE_KEY, // Documentation requirement
-        'User-Agent': 'Mozilla/5.0'
-      },
-    });
+    // Calling your local proxy
+    const response = await fetch('/api/csdrop-leaderboard'); 
+    if (!response.ok) throw new Error("API Failed");
 
     const data = await response.json();
-    // Return the "ranking" array as specified in the docs
-    return res.status(200).json({ rankings: data.ranking || [] });
+    
+    // 1. The documentation says the array is 'ranking'
+    const rawList = data.rankings || []; 
 
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    const formatted = rawList.map((p) => {
+      // 2. Ensure rank is a number for the prize lookup
+      const currentRank = parseInt(p.rank); 
+      
+      // 3. Lookup the prize from your manualCsdropPrizes { 1: 400, 2: 250... }
+      const prize = manualCsdropPrizes[currentRank];
+
+      return {
+        id: p.user.hash_id,             // Fixed: uses user.hash_id from docs
+        rank: currentRank,              // Fixed: uses p.rank from docs
+        username: p.user.name,          // Fixed: uses user.name from docs
+        avatar: p.user.avatar || "/default-avatar.png", // Fixed: uses user.avatar
+        wageredAmount: parseFloat(p.total) / 100, // Fixed: converts minor units
+        reward: prize ? `${prize}` : "-", // SUCCESS: This will now find the prize
+      };
+    });
+
+    setPlayers(formatted);
+  } catch (err) {
+    console.log("Fetch failed:", err);
+    setPlayers([]); 
+  } finally {
+    setLoading(false);
   }
-}
+}, []);
