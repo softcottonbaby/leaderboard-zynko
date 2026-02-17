@@ -138,17 +138,23 @@ const fetchCsdrop = useCallback(async () => {
     const response = await fetch('/api/csdrop-leaderboard'); // Must match the filename exactly
     if (!response.ok) throw new Error("API Route Failed");
 
-    const data = await response.json();
-    const rawList = data.rankings || []; // Match the key from the API response above
+    // Inside fetchCsdrop in pages/leaderboard.js
+// Inside fetchCsdrop in pages/leaderboard.js
+const data = await response.json();
+const rawList = data.rankings || []; // Array from your new proxy
 
-    const formatted = rawList.map((p, index) => ({
-      id: (p.username || "anon") + (index + 1),
-      rank: index + 1,
-      username: p.username || "Anonymous",
-      avatar: p.avatar || "/default-avatar.png",
-      wageredAmount: parseFloat(p.wager || 0),
-      reward: manualCsdropPrizes[index + 1] ? `${manualCsdropPrizes[index + 1]}` : "-",
-    }));
+const formatted = rawList.map((p) => {
+  return {
+    id: p.user.hash_id, // Documentation: user.hash_id
+    rank: p.rank,       // Documentation: rank
+    username: p.user.name, // Documentation: user.name (Fixes "Anonymous")
+    avatar: p.user.avatar || "/default-avatar.png", // Documentation: user.avatar (Fixes images)
+    wageredAmount: parseFloat(p.total) / 100, // Converts minor units to currency
+    reward: manualCsdropPrizes[p.rank] ? `${manualCsdropPrizes[p.rank]}` : "-",
+  };
+});
+
+setPlayers(formatted);
 
     setPlayers(formatted);
   } catch (err) {
