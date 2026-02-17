@@ -10,7 +10,13 @@ const CONFIG = {
 
 // --- 2. PRIZE POOL ---
 const manualCsdropPrizes = { 
-  1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 
+  1: 400, 
+  2: 250, 
+  3: 150, 
+  4: 90, 
+  5: 60, 
+  6: 35, 
+  7: 15 
 };
 
 // --- 3. ANIMATED COUNTER ---
@@ -140,19 +146,28 @@ const fetchCsdrop = useCallback(async () => {
 
     // Inside fetchCsdrop in pages/leaderboard.js
 // Inside fetchCsdrop in pages/leaderboard.js
+// Inside fetchCsdrop in pages/leaderboard.js
 const data = await response.json();
-const rawList = data.rankings || []; // Array from your new proxy
+const rawList = data.rankings || []; 
 
 const formatted = rawList.map((p) => {
+  // 1. Get the rank from the API response
+  const currentRank = parseInt(p.rank); 
+  
+  // 2. Lookup the prize from your manualCsdropPrizes object
+  const prize = manualCsdropPrizes[currentRank];
+
   return {
-    id: p.user.hash_id, // Documentation: user.hash_id
-    rank: p.rank,       // Documentation: rank
-    username: p.user.name, // Documentation: user.name (Fixes "Anonymous")
-    avatar: p.user.avatar || "/default-avatar.png", // Documentation: user.avatar (Fixes images)
-    wageredAmount: parseFloat(p.total) / 100, // Converts minor units to currency
-    reward: manualCsdropPrizes[p.rank] ? `${manualCsdropPrizes[p.rank]}` : "-",
+    id: p.user.hash_id,             // Fixed: Use user.hash_id
+    rank: currentRank,              // Fixed: Ensure it's an integer
+    username: p.user.name,          // Fixed: Use user.name
+    avatar: p.user.avatar || "/default-avatar.png", // Fixed: Use user.avatar
+    wageredAmount: parseFloat(p.total) / 100, // Fixed: Convert minor units to Dollars/Coins
+    reward: prize ? `${prize}` : "-", // Fixed: Map to your prize list
   };
 });
+
+setPlayers(formatted);
 
 setPlayers(formatted);
 
