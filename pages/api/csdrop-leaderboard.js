@@ -1,8 +1,8 @@
 // pages/api/csdrop-leaderboard.js
 export default async function handler(req, res) {
   try {
-    // Dynamic dates: 14 days ago to Right Now
-    const endDate = new Date(); 
+    // DYNAMIC DATES: Always uses the current 14-day window
+    const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - 14);
 
@@ -13,9 +13,13 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0', // Helps bypass basic bot protection
+        'Accept': 'application/json',
+        // Enhanced headers to bypass Cloudflare bot detection
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'x-public-key': PUBLIC_KEY,
-        'x-private-key': PRIVATE_KEY
+        'x-private-key': PRIVATE_KEY,
+        'Origin': 'https://www.zynkogambles.com',
+        'Referer': 'https://www.zynkogambles.com/'
       },
       body: JSON.stringify({
         type: 'WAGER',
@@ -27,14 +31,16 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorData = await response.text();
-      return res.status(response.status).json({ error: "CSDrop rejected request", details: errorData });
+      console.error("CSDrop Error Status:", response.status);
+      return res.status(response.status).json({ 
+        error: "Security Block", 
+        details: "CSDrop/Cloudflare is blocking the server IP." 
+      });
     }
 
     const data = await response.json();
-    const rankings = data.rankings || data.players || [];
-    
-    // Return the specific data structure your frontend expects
-    return res.status(200).json({ rankings: rankings });
+    // Return the specific data structure the frontend expect
+    return res.status(200).json({ rankings: data.rankings || data.players || [] });
 
   } catch (error) {
     return res.status(500).json({ error: "Server Error", message: error.message });

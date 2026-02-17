@@ -132,22 +132,27 @@ export default function Leaderboard() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [loading, setLoading] = useState(true); 
 
-  // Inside pages/leaderboard.js
+// Inside pages/leaderboard.js
 const fetchCsdrop = useCallback(async () => {
   try {
-    // Change the URL to your local proxy route
-    const response = await fetch('/api/csdrop-leaderboard'); 
-
-    if (!response.ok) throw new Error("Local API Failed");
+    const response = await fetch('/api/csdrop-leaderboard'); // Must match the filename exactly
+    if (!response.ok) throw new Error("API Route Failed");
 
     const data = await response.json();
-    const rawList = data.rankings || data.players || [];
-    // ... rest of your sorting and formatting logic ...
-    
+    const rawList = data.rankings || []; // Match the key from the API response above
+
+    const formatted = rawList.map((p, index) => ({
+      id: (p.username || "anon") + (index + 1),
+      rank: index + 1,
+      username: p.username || "Anonymous",
+      avatar: p.avatar || "/default-avatar.png",
+      wageredAmount: parseFloat(p.wager || 0),
+      reward: manualCsdropPrizes[index + 1] ? `${manualCsdropPrizes[index + 1]}` : "-",
+    }));
+
     setPlayers(formatted);
   } catch (err) {
-    console.error("Fetch failed:", err);
-    setPlayers([]);
+    console.error("Leaderboard fetch failed:", err);
   } finally {
     setLoading(false);
   }
