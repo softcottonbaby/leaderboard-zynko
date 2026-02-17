@@ -1,36 +1,42 @@
 // pages/api/csdrop-leaderboard.js
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
-  const CONFIG = {
-    API_URL: "https://api.csdrop.com/v1/leaderboard",
-    PUBLIC_KEY: "IJnsemuVsOqzpaLirMzGwhQbcGedfh",
-    PRIVATE_KEY: "eNpecoKkLYFKfmiEqncYKjFbabhfOh" 
-  };
-
-  const endDateObj = new Date();
-  const startDateObj = new Date();
-  startDateObj.setDate(endDateObj.getDate() - 14);
-
   try {
-    const response = await fetch(CONFIG.API_URL, {
+    // Dynamic dates: 14 days ago to Right Now
+    const endDate = new Date(); 
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 14);
+
+    const PUBLIC_KEY = 'IJnsemuVsOqzpaLirMzGwhQbcGedfh';
+    const PRIVATE_KEY = 'eNpecoKkLYFKfmiEqncYKjFbabhfOh';
+
+    const response = await fetch('https://api.csdrop.com/v1/leaderboard', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-public-key': CONFIG.PUBLIC_KEY,
-        'x-private-key': CONFIG.PRIVATE_KEY
+        'User-Agent': 'Mozilla/5.0', // Helps bypass basic bot protection
+        'x-public-key': PUBLIC_KEY,
+        'x-private-key': PRIVATE_KEY
       },
       body: JSON.stringify({
         type: 'WAGER',
-        startTime: Math.floor(startDateObj.getTime() / 1000),
-        endTime: Math.floor(endDateObj.getTime() / 1000),
+        startTime: Math.floor(startDate.getTime() / 1000),
+        endTime: Math.floor(endDate.getTime() / 1000),
         limit: 50
-      })
+      }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      return res.status(response.status).json({ error: "CSDrop rejected request", details: errorData });
+    }
+
     const data = await response.json();
-    res.status(200).json(data);
+    const rankings = data.rankings || data.players || [];
+    
+    // Return the specific data structure your frontend expects
+    return res.status(200).json({ rankings: rankings });
+
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch from CSDrop" });
+    return res.status(500).json({ error: "Server Error", message: error.message });
   }
 }
