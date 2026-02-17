@@ -124,7 +124,8 @@ export default function Leaderboard() {
       const rawList = data.rankings || []; 
 
       const formatted = rawList.map((p) => {
-        const currentRank = parseInt(p.rank); 
+        // FIX: API rank is 0-indexed. Adding +1 to match manual prizes and board slots.
+        const currentRank = parseInt(p.rank) + 1; 
         return {
           id: p.user?.hash_id || `user-${currentRank}`,
           rank: currentRank,
@@ -145,7 +146,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     fetchCsdrop();
-    const intervalId = setInterval(fetchCsdrop, 30000);
+    const intervalId = setInterval(fetchCsdrop, 15000);
     return () => clearInterval(intervalId);
   }, [fetchCsdrop]);
 
