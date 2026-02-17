@@ -1,43 +1,42 @@
+// pages/api/csdrop-leaderboard.js
 export default async function handler(req, res) {
   try {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 14);
-
     const PUBLIC_KEY = 'IJnsemuVsOqzpaLirMzGwhQbcGedfh';
     const PRIVATE_KEY = 'eNpecoKkLYFKfmiEqncYKjFbabhfOh';
 
-    const response = await fetch('https://api.csdrop.com/v1/leaderboard', {
-      method: 'POST',
+    // 1. DYNAMIC DATES: 14-day window
+    const endTimestamp = Math.floor(Date.now() / 1000);
+    const startTimestamp = endTimestamp - (14 * 24 * 60 * 60);
+
+    // 2. CONSTRUCT URL: Based on /api/v1/race/affiliates/{publicKey}
+    const url = new URL(`https://api.csdrop.com/api/v1/race/affiliates/${PUBLIC_KEY}`);
+    url.searchParams.append('start_timestamp', startTimestamp);
+    url.searchParams.append('end_timestamp', endTimestamp);
+
+    const response = await fetch(url.toString(), {
+      method: 'GET', // Documentation says GET
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        // Standardizing the User-Agent to a very common Windows/Chrome version
+        'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        'x-public-key': PUBLIC_KEY,
-        'x-private-key': PRIVATE_KEY,
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        'X-Private-Key': PRIVATE_KEY, // Documentation specifies X-Private-Key
       },
-      body: JSON.stringify({
-        type: 'WAGER',
-        startTime: Math.floor(startDate.getTime() / 1000),
-        endTime: Math.floor(endDate.getTime() / 1000),
-        limit: 50
-      }),
     });
 
     if (!response.ok) {
-      // If we still get a 403, it's a hard IP block
+      const errorData = await response.text();
+      console.error("CSDrop API Error Status:", response.status, errorData);
       return res.status(response.status).json({ 
-        error: "IP_BLOCK", 
-        message: "Your hosting provider's IP is blocked by CSDrop firewall." 
+        error: "Security Block or Invalid Request", 
+        details: errorData 
       });
     }
 
     const data = await response.json();
-    return res.status(200).json({ rankings: data.rankings || data.players || [] });
+    
+    // 3. MAP DATA: Documentation says the array is under 'ranking'
+    const rankings = data.ranking || [];
+    
+    return res.status(200).json({ rankings });
 
   } catch (error) {
     return res.status(500).json({ error: "Server Error", message: error.message });
