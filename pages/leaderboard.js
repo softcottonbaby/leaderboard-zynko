@@ -1,15 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, animate } from "framer-motion";
 
-// --- 1. CONFIGURATION ---
+// --- 1. CONFIGURATION & PRIZES ---
 const manualCsdropPrizes = { 
   1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 
-};
-
-// Helper to ensure a prize is ALWAYS returned for ranks 1-7
-const getPrizeForRank = (rank) => {
-  const prize = manualCsdropPrizes[rank];
-  return prize ? `${prize}` : "-";
 };
 
 // --- 2. ANIMATED COUNTER ---
@@ -126,13 +120,14 @@ export default function Leaderboard() {
 
       const formatted = rawList.map((p) => {
         const currentRank = parseInt(p.rank); 
+        const prize = manualCsdropPrizes[currentRank];
         return {
           id: p.user?.hash_id || `user-${currentRank}`,
           rank: currentRank,
           username: p.user?.name || "Anonymous",
           avatar: p.user?.avatar || "/default-avatar.png",
           wageredAmount: parseFloat(p.total) / 100,
-          reward: getPrizeForRank(currentRank),
+          reward: prize ? `${prize}` : "-", // Use manual prize if it exists
         };
       });
 
@@ -186,7 +181,7 @@ export default function Leaderboard() {
           username: "EMPTY",
           avatar: "/default-avatar.png",
           wageredAmount: 0,
-          reward: getPrizeForRank(i),
+          reward: manualCsdropPrizes[i] ? `${manualCsdropPrizes[i]}` : "-",
         });
       }
     }
@@ -195,28 +190,22 @@ export default function Leaderboard() {
 
   const accentColor = "rgba(59, 130, 246, 0.95)";
   const coin = "/csgold/app-coin-blue.webp";
-  
   const listContainerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07 } } };
   const listItemVariants = { hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } };
 
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden relative select-none bg-black">
-      {/* Backgrounds RESTORED */}
+      {/* Visual Backgrounds Restored */}
       <div className="absolute top-0 left-0 w-full h-[850px] pointer-events-none z-0" style={{ background: "radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.25) 0%, rgba(30, 64, 175, 0.1) 40%, rgba(29, 78, 216, 0.03) 65%, rgba(0,0,0,0) 90%)" }} />
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-20" style={{ backgroundImage: `linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
 
       <main className="flex-grow w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
-        
-        <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-black/60 backdrop-blur-lg text-white border-b border-white/5">
-          <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
-            <img src="/csgold/logo_csdrop.webp" alt="CSDrop Logo" className="h-8 md:h-10" />
-            <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
+        <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-black/60 backdrop-blur-lg text-white border-b border-white/5 py-5 px-6 md:px-10">
+          <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
+            <img src="/csgold/logo_csdrop.webp" alt="Logo" className="h-8 md:h-10" />
+            <div className="space-x-8 text-sm font-bold tracking-wide">
               {[{ href: "/", label: "Home" }, { href: "/leaderboard", label: "Leaderboard" }, { href: "/bonuses", label: "Bonuses" }].map((i) => (
-                <a key={i.href} href={i.href} className="relative group">
-                  <span className="text-white hover:text-[#3b82f6] transition">{i.label}
-                    <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-[#3b82f6] transition-all duration-300 group-hover:w-full"></span>
-                  </span>
-                </a>
+                <a key={i.href} href={i.href} className="text-white hover:text-[#3b82f6] transition">{i.label}</a>
               ))}
             </div>
           </div>
@@ -232,7 +221,7 @@ export default function Leaderboard() {
               <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
           </motion.div>
 
-          {/* Countdown Panel RESTORED */}
+          {/* Countdown Panel Restored */}
           <div className="text-white bg-black/60 border border-[#3b82f6]/20 rounded-xl py-6 px-10 mb-12 max-w-md mx-auto backdrop-blur-md">
               <p className="text-xs font-bold mb-3 text-[#3b82f6] uppercase tracking-widest text-center">Leaderboard Ends In</p>
               <div className="flex justify-center gap-5 text-2xl font-mono">
@@ -277,15 +266,11 @@ export default function Leaderboard() {
       <footer className="w-full bg-[#0a0a0a] border-t border-[#3b82f6]/20 pt-8 pb-6 relative z-20 mt-auto">
         <div className="max-w-screen-xl mx-auto flex flex-col items-center justify-center text-center px-4">
           <div className="flex gap-6 mb-4">
-            <a href="https://www.youtube.com/@zynko333/featured" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
-              <img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5 filter brightness-0 invert" />
-            </a>
-            <a href="https://kick.com/zynkogambles" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
-              <img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert" />
-            </a>
-            <a href="https://discord.gg/zynko" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
-              <img src="/icons/discord.webp" alt="Discord" className="w-5 h-5 filter brightness-0 invert" />
-            </a>
+            {["youtube", "kick", "discord"].map(i => (
+              <a key={i} href="#" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
+                <img src={`/icons/${i}.${i === 'kick' ? 'png' : 'webp'}`} alt={i} className="w-5 h-5 filter brightness-0 invert" />
+              </a>
+            ))}
           </div>
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
         </div>
