@@ -132,55 +132,26 @@ export default function Leaderboard() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [loading, setLoading] = useState(true); 
 
-  const fetchCsdrop = useCallback(async () => {
-    // FIX: Set dates to CURRENT time to find active race
-    const endDateObj = new Date(); // Today
-    const startDateObj = new Date();
-    startDateObj.setDate(endDateObj.getDate() - 14); // Look back 14 days
+  // Inside pages/leaderboard.js
+const fetchCsdrop = useCallback(async () => {
+  try {
+    // Change the URL to your local proxy route
+    const response = await fetch('/api/csdrop-leaderboard'); 
 
-    try {
-      const response = await fetch(CONFIG.API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-public-key': CONFIG.PUBLIC_KEY,
-          'x-private-key': CONFIG.PRIVATE_KEY
-        },
-        body: JSON.stringify({
-          type: 'WAGER',
-          startTime: Math.floor(startDateObj.getTime() / 1000),
-          endTime: Math.floor(endDateObj.getTime() / 1000),
-          limit: 50
-        })
-      });
+    if (!response.ok) throw new Error("Local API Failed");
 
-      if (!response.ok) throw new Error("API Failed");
-
-      const data = await response.json();
-      const rawList = data.rankings || data.players || [];
-      const sorted = rawList.sort((a, b) => (b.wager || 0) - (a.wager || 0));
-
-      const formatted = sorted.map((p, index) => {
-        const rank = index + 1;
-        const prize = manualCsdropPrizes[rank];
-        return {
-          id: (p.username || "anon") + rank,
-          rank,
-          username: p.username || "Anonymous",
-          avatar: p.avatar || "/default-avatar.png",
-          wageredAmount: parseFloat(p.wager || 0),
-          reward: prize ? `${prize}` : "-",
-        };
-      });
-
-      setPlayers(formatted);
-    } catch (err) {
-      console.log("Fetch failed or no data. Showing empty board.");
-      setPlayers([]); // Use empty array if fetch fails
-    } finally {
-        setLoading(false); // ALWAYS finish loading so board shows
-    }
-  }, []);
+    const data = await response.json();
+    const rawList = data.rankings || data.players || [];
+    // ... rest of your sorting and formatting logic ...
+    
+    setPlayers(formatted);
+  } catch (err) {
+    console.error("Fetch failed:", err);
+    setPlayers([]);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     fetchCsdrop();
