@@ -10,13 +10,7 @@ const CONFIG = {
 
 // --- 2. PRIZE POOL ---
 const manualCsdropPrizes = { 
-  1: 400, 
-  2: 250, 
-  3: 150, 
-  4: 90, 
-  5: 60, 
-  6: 35, 
-  7: 15 
+  1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 
 };
 
 // --- 3. ANIMATED COUNTER ---
@@ -148,25 +142,30 @@ const fetchCsdrop = useCallback(async () => {
 // Inside fetchCsdrop in pages/leaderboard.js
 // Inside fetchCsdrop in pages/leaderboard.js
 // Inside pages/leaderboard.js -> fetchCsdrop function
+// Inside pages/leaderboard.js -> fetchCsdrop
 const data = await response.json();
+// The API returns the list in a property called 'rankings' from your proxy
 const rawList = data.rankings || []; 
 
 const formatted = rawList.map((p) => {
-  // Ensure we get the rank as a number to match your manualCsdropPrizes keys
+  // 1. Convert rank to an integer to match manualCsdropPrizes keys (1, 2, 3...)
   const currentRank = parseInt(p.rank); 
   
-  // Look up the prize from your manual list (e.g., manualCsdropPrizes[1] = 400)
+  // 2. Lookup the prize from your manual list
   const prize = manualCsdropPrizes[currentRank];
 
   return {
     id: p.user.hash_id,             // Uses hash_id from the new API
     rank: currentRank,              // Uses the rank from the API
     username: p.user.name,          // Uses the name inside the user object
-    avatar: p.user.avatar || "/default-avatar.png", // Uses the new avatar path
-    wageredAmount: parseFloat(p.total) / 100, // Converts minor units to currency
-    reward: prize ? `${prize}` : "-", // Correctly assigns the manual prize or "-" if rank > 7
+    avatar: p.user.avatar || "/default-avatar.png", // Uses user.avatar
+    wageredAmount: parseFloat(p.total) / 100, // Converts minor units to major units
+    // 3. This ensures the manual prize is used instead of "-"
+    reward: prize ? `${prize}` : "-", 
   };
 });
+
+setPlayers(formatted);
 
 
     setPlayers(formatted);
