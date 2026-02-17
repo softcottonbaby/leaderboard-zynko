@@ -147,29 +147,27 @@ const fetchCsdrop = useCallback(async () => {
     // Inside fetchCsdrop in pages/leaderboard.js
 // Inside fetchCsdrop in pages/leaderboard.js
 // Inside fetchCsdrop in pages/leaderboard.js
+// Inside pages/leaderboard.js -> fetchCsdrop function
 const data = await response.json();
 const rawList = data.rankings || []; 
 
 const formatted = rawList.map((p) => {
-  // 1. Get the rank from the API response
+  // Ensure we get the rank as a number to match your manualCsdropPrizes keys
   const currentRank = parseInt(p.rank); 
   
-  // 2. Lookup the prize from your manualCsdropPrizes object
+  // Look up the prize from your manual list (e.g., manualCsdropPrizes[1] = 400)
   const prize = manualCsdropPrizes[currentRank];
 
   return {
-    id: p.user.hash_id,             // Fixed: Use user.hash_id
-    rank: currentRank,              // Fixed: Ensure it's an integer
-    username: p.user.name,          // Fixed: Use user.name
-    avatar: p.user.avatar || "/default-avatar.png", // Fixed: Use user.avatar
-    wageredAmount: parseFloat(p.total) / 100, // Fixed: Convert minor units to Dollars/Coins
-    reward: prize ? `${prize}` : "-", // Fixed: Map to your prize list
+    id: p.user.hash_id,             // Uses hash_id from the new API
+    rank: currentRank,              // Uses the rank from the API
+    username: p.user.name,          // Uses the name inside the user object
+    avatar: p.user.avatar || "/default-avatar.png", // Uses the new avatar path
+    wageredAmount: parseFloat(p.total) / 100, // Converts minor units to currency
+    reward: prize ? `${prize}` : "-", // Correctly assigns the manual prize or "-" if rank > 7
   };
 });
 
-setPlayers(formatted);
-
-setPlayers(formatted);
 
     setPlayers(formatted);
   } catch (err) {
