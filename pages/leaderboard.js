@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, animate } from "framer-motion";
 
 // --- 1. CONFIGURATION ---
@@ -6,18 +6,11 @@ const manualCsdropPrizes = {
   1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 
 };
 
-// Helper to ensure a prize is ALWAYS returned for ranks 1-7
-const getPrizeForRank = (rank) => {
-  const prize = manualCsdropPrizes[rank];
-  return prize ? `${prize}` : "-";
-};
-
 // --- 2. ANIMATED COUNTER ---
 function Counter({ from = 0, to, fractionDigits = 0 }) {
   const nodeRef = useRef();
   useEffect(() => {
     const node = nodeRef.current;
-    if (!node) return;
     const controls = animate(from, to, {
       duration: 1.2,
       ease: "easeOut",
@@ -36,7 +29,7 @@ function Counter({ from = 0, to, fractionDigits = 0 }) {
 // --- 3. PODIUM CARD ---
 function PodiumCard({ player, position, accent, coinIcon }) {
   const isPrimary = position === 1;
-  const isEmpty = !player || player.username === "EMPTY";
+  const isEmpty = player.username === "EMPTY";
   const accentColor = accent.replace(", 0.95)", ")");
   const accentGlow = accent.replace("0.95", "0.4");
 
@@ -61,28 +54,30 @@ function PodiumCard({ player, position, accent, coinIcon }) {
     }
   };
 
-  const prizeValue = player ? parseFloat(player.reward) : 0;
+  const prizeValue = parseFloat(player.reward);
 
   return (
     <div className={`relative rounded-2xl ${cardSize} flex flex-col items-center justify-start p-5 transition-all duration-300 hover:-translate-y-2 ${isEmpty ? "opacity-60" : ""}`} style={cardStyle}>
       <div className={`relative mb-8 ${isPrimary ? "-mt-16" : "-mt-12"}`}>
-        <div className="rounded-full p-[3px]" style={{ border: `3px solid rgba(59, 130, 246, 0.6)` }}>
-          <img src={player?.avatar || "/default-avatar.png"} alt="avatar" className={`${avatarSize} rounded-full object-cover border-2 border-white/50`} onError={(e) => (e.target.src = "/default-avatar.png")} />
-        </div>
+        <img 
+          src={player.avatar || "/default-avatar.png"} 
+          className={`${avatarSize} rounded-full object-cover border-4 border-white/20`} 
+          onError={(e) => (e.target.src = "/default-avatar.png")}
+        />
         <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 ${rankSize} rounded-full flex items-center justify-center font-bold border-2 border-white/80`} style={getRankStyling(position)}>
           {position}
         </div>
       </div>
-      <p className="font-bold text-white text-xl mb-4 tracking-wide truncate w-full px-2 text-center">{player?.username || "EMPTY"}</p>
+      <p className="font-bold text-white text-xl mb-4 truncate w-full text-center">{player.username}</p>
       <div className="w-full flex flex-col gap-3">
         <div className="text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60 mb-1">Wagered</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/50 mb-1">Wagered</p>
           <p className="text-xl font-bold text-white">
-            {player?.wageredAmount > 0 ? <>$<Counter to={player.wageredAmount} fractionDigits={2} /></> : "–"}
+            ${player.wageredAmount > 0 ? <Counter to={player.wageredAmount} fractionDigits={2} /> : "0.00"}
           </p>
         </div>
         <div className="text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60 mb-1">Prize</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/50 mb-1">Prize</p>
           <p className="text-lg font-bold flex items-center justify-center gap-2" style={{ color: accentColor }}>
             {!isNaN(prizeValue) && prizeValue > 0 ? (
               <>
@@ -99,7 +94,8 @@ function PodiumCard({ player, position, accent, coinIcon }) {
 
 // --- 4. PODIUM WRAPPER ---
 function PodiumTop3({ players = [], accent, coinIcon }) {
-  const topThree = [ players[0], players[1], players[2] ];
+  const emptyPlayer = { username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0, reward: "-" };
+  const topThree = [ players[0] || emptyPlayer, players[1] || emptyPlayer, players[2] || emptyPlayer ];
 
   return (
     <div className="flex flex-col items-center gap-16 md:flex-row md:justify-center md:items-end md:gap-6">
@@ -114,7 +110,7 @@ function PodiumTop3({ players = [], accent, coinIcon }) {
 export default function Leaderboard() {
   const [players, setPlayers] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
 
   const fetchCsdrop = useCallback(async () => {
     try {
@@ -122,19 +118,24 @@ export default function Leaderboard() {
       if (!response.ok) throw new Error("API Route Failed");
 
       const data = await response.json();
-      const rawList = data.rankings || []; 
+      const rawList = data.rankings || [];
 
-      const formatted = rawList.map((p) => {
-        const currentRank = parseInt(p.rank); 
-        return {
-          id: p.user?.hash_id || `user-${currentRank}`,
-          rank: currentRank,
-          username: p.user?.name || "Anonymous",
-          avatar: p.user?.avatar || "/default-avatar.png",
-          wageredAmount: parseFloat(p.total) / 100,
-          reward: getPrizeForRank(currentRank), // ALWAYS shows the prize if rank is 1-7
-        };
-      });
+      // SORT by wager to ensure Rank 1 is first, then Map
+      const formatted = rawList
+        .sort((a, b) => (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0))
+        .map((p, index) => {
+          const currentRank = p.rank ? parseInt(p.rank) : (index + 1);
+          const prize = manualCsdropPrizes[currentRank];
+
+          return {
+            id: p.user?.hash_id || `user-${index}`,
+            rank: currentRank,
+            username: p.user?.name || "Anonymous",
+            avatar: p.user?.avatar || "/default-avatar.png",
+            wageredAmount: (parseFloat(p.total) || 0) / 100, // minor to major units
+            reward: prize ? String(prize) : "-",
+          };
+        });
 
       setPlayers(formatted);
     } catch (err) {
@@ -146,7 +147,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     fetchCsdrop();
-    const intervalId = setInterval(fetchCsdrop, 30000);
+    const intervalId = setInterval(fetchCsdrop, 15000);
     return () => clearInterval(intervalId);
   }, [fetchCsdrop]);
 
@@ -169,88 +170,73 @@ export default function Leaderboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // FORCE FILL: This logic ensures spots 1-11 are ALWAYS occupied by a player or an "EMPTY" placeholder
-  const filledPlayers = useMemo(() => {
-    const totalSlots = 11;
-    let combined = [...players];
-    
-    // Sort real players by rank to ensure they occupy the correct manual slot
-    combined.sort((a, b) => a.rank - b.rank);
-
-    const finalBoard = [];
-    for (let i = 1; i <= totalSlots; i++) {
-      const existingPlayer = combined.find(p => p.rank === i);
-      if (existingPlayer) {
-        finalBoard.push(existingPlayer);
-      } else {
-        finalBoard.push({
-          id: `empty-${i}`,
-          rank: i,
-          username: "EMPTY",
-          avatar: "/default-avatar.png",
-          wageredAmount: 0,
-          reward: getPrizeForRank(i), // Prize is always set here
-        });
-      }
-    }
-    return finalBoard;
-  }, [players]);
+  const totalSlots = 11;
+  const filledPlayers = [...players];
+  while (filledPlayers.length < totalSlots) {
+    const rank = filledPlayers.length + 1;
+    filledPlayers.push({
+      id: `empty-${rank}`, rank, username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0,
+      reward: manualCsdropPrizes[rank] ? String(manualCsdropPrizes[rank]) : "-",
+    });
+  }
 
   const accentColor = "rgba(59, 130, 246, 0.95)";
   const coin = "/csgold/app-coin-blue.webp";
 
   return (
     <div className="flex flex-col min-h-screen relative bg-black text-white">
-      <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-black/60 backdrop-blur-lg border-b border-white/5 py-5 px-10">
-        <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
-          <img src="/csgold/logo_csdrop.webp" alt="Logo" className="h-10" />
-          <div className="space-x-8 font-bold">
-            <a href="/" className="hover:text-blue-500">Home</a>
-            <a href="/leaderboard" className="text-blue-500">Leaderboard</a>
-            <a href="/bonuses" className="hover:text-blue-500">Bonuses</a>
-          </div>
-        </div>
-      </nav>
-
       <main className="flex-grow w-full flex flex-col items-center px-4 pt-32 pb-24 z-10">
+        
+        {/* Navbar */}
+        <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-black/60 backdrop-blur-lg border-b border-white/5 py-5 px-10">
+           <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
+            <img src="/csgold/logo_csdrop.webp" alt="Logo" className="h-10" />
+            <div className="space-x-8 font-bold">
+              <a href="/" className="hover:text-blue-500 transition">Home</a>
+              <a href="/leaderboard" className="text-blue-500">Leaderboard</a>
+              <a href="/bonuses" className="hover:text-blue-500 transition">Bonuses</a>
+            </div>
+          </div>
+        </nav>
+
         <section className="w-full max-w-5xl">
-          <p className="text-center font-bold mb-6 uppercase text-sm tracking-wider text-blue-400">WAGER ABUSING GETS YOU DISQUALIFIED</p>
           <h2 className="text-4xl md:text-5xl font-bold mb-16 text-center">
-            <span className="text-blue-500">CSDROP.COM</span> 1,000 BI-WEEKLY
+             <span className="text-blue-500">CSDROP.COM</span> LEADERBOARD
           </h2>
 
           <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
 
+          {/* Table */}
           <div className="mt-20 overflow-x-auto rounded-xl border border-white/10 bg-black/40 backdrop-blur-md">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-white/5 text-white/50 uppercase">
-                <tr>
-                  <th className="px-6 py-4">RANK</th>
-                  <th className="px-6 py-4">PLAYER</th>
-                  <th className="px-6 py-4">WAGERED</th>
-                  <th className="px-6 py-4">REWARD</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filledPlayers.slice(3).map((p) => (
-                  <tr key={p.id} className="border-t border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">{p.rank}</td>
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <img src={p.avatar} className={`w-8 h-8 rounded-full border border-white/10 ${p.username === "EMPTY" ? "opacity-30" : ""}`} alt="" />
-                      <span className={p.username === "EMPTY" ? "opacity-40 italic" : ""}>{p.username}</span>
-                    </td>
-                    <td className="px-6 py-4 opacity-80">${p.wageredAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="px-6 py-4 font-bold text-blue-400">
-                      {p.reward !== "-" ? (
-                        <span className="flex items-center gap-1">
-                          <img src={coin} alt="C" className="w-4 h-4"/> {p.reward}
-                        </span>
-                      ) : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-white/5 uppercase text-white/50">
+                    <tr>
+                      <th className="px-6 py-4">Rank</th>
+                      <th className="px-6 py-4">Player</th>
+                      <th className="px-6 py-4">Wagered</th>
+                      <th className="px-6 py-4">Reward</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filledPlayers.slice(3).map((p) => (
+                    <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
+                        <td className="px-6 py-4">{p.rank}</td>
+                        <td className="px-6 py-4 flex items-center gap-3">
+                          <img src={p.avatar} className="w-8 h-8 rounded-full" alt="" />
+                          {p.username}
+                        </td>
+                        <td className="px-6 py-4">${p.wageredAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-4 font-bold text-blue-400">
+                            {p.reward !== "-" ? (
+                            <span className="flex items-center gap-1">
+                                <img src={coin} alt="C" className="w-4 h-4"/> {p.reward}
+                            </span>
+                            ) : "-"}
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+              </table>
           </div>
         </section>
       </main>
