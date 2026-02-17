@@ -6,6 +6,12 @@ const manualCsdropPrizes = {
   1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 
 };
 
+// Helper to ensure a prize is ALWAYS returned for ranks 1-7
+const getPrizeForRank = (rank) => {
+  const prize = manualCsdropPrizes[rank];
+  return prize ? `${prize}` : "-";
+};
+
 // --- 2. ANIMATED COUNTER ---
 function Counter({ from = 0, to, fractionDigits = 0 }) {
   const nodeRef = useRef();
@@ -94,7 +100,6 @@ function PodiumCard({ player, position, accent, coinIcon }) {
 // --- 4. PODIUM WRAPPER ---
 function PodiumTop3({ players = [], accent, coinIcon }) {
   const topThree = [ players[0], players[1], players[2] ];
-
   return (
     <div className="flex flex-col items-center gap-16 md:flex-row md:justify-center md:items-end md:gap-6">
       <PodiumCard player={topThree[1]} position={2} accent={accent} coinIcon={coinIcon} />
@@ -120,14 +125,13 @@ export default function Leaderboard() {
 
       const formatted = rawList.map((p) => {
         const currentRank = parseInt(p.rank); 
-        const prize = manualCsdropPrizes[currentRank];
         return {
           id: p.user?.hash_id || `user-${currentRank}`,
           rank: currentRank,
           username: p.user?.name || "Anonymous",
           avatar: p.user?.avatar || "/default-avatar.png",
           wageredAmount: parseFloat(p.total) / 100,
-          reward: prize ? `${prize}` : "-", // Use manual prize if it exists
+          reward: getPrizeForRank(currentRank),
         };
       });
 
@@ -141,7 +145,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     fetchCsdrop();
-    const intervalId = setInterval(fetchCsdrop, 15000);
+    const intervalId = setInterval(fetchCsdrop, 30000);
     return () => clearInterval(intervalId);
   }, [fetchCsdrop]);
 
@@ -171,7 +175,7 @@ export default function Leaderboard() {
 
     const finalBoard = [];
     for (let i = 1; i <= totalSlots; i++) {
-      const existingPlayer = combined.find(p => p.rank === i);
+      const existingPlayer = combined.find(p => Number(p.rank) === i);
       if (existingPlayer) {
         finalBoard.push(existingPlayer);
       } else {
@@ -181,7 +185,7 @@ export default function Leaderboard() {
           username: "EMPTY",
           avatar: "/default-avatar.png",
           wageredAmount: 0,
-          reward: manualCsdropPrizes[i] ? `${manualCsdropPrizes[i]}` : "-",
+          reward: getPrizeForRank(i),
         });
       }
     }
@@ -195,7 +199,7 @@ export default function Leaderboard() {
 
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden relative select-none bg-black">
-      {/* Visual Backgrounds Restored */}
+      {/* RESTORED: Glowing Blue Grid & Radial Background */}
       <div className="absolute top-0 left-0 w-full h-[850px] pointer-events-none z-0" style={{ background: "radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.25) 0%, rgba(30, 64, 175, 0.1) 40%, rgba(29, 78, 216, 0.03) 65%, rgba(0,0,0,0) 90%)" }} />
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-20" style={{ backgroundImage: `linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
 
@@ -221,7 +225,7 @@ export default function Leaderboard() {
               <PodiumTop3 players={filledPlayers} accent={accentColor} coinIcon={coin} />
           </motion.div>
 
-          {/* Countdown Panel Restored */}
+          {/* RESTORED: Countdown Panel */}
           <div className="text-white bg-black/60 border border-[#3b82f6]/20 rounded-xl py-6 px-10 mb-12 max-w-md mx-auto backdrop-blur-md">
               <p className="text-xs font-bold mb-3 text-[#3b82f6] uppercase tracking-widest text-center">Leaderboard Ends In</p>
               <div className="flex justify-center gap-5 text-2xl font-mono">
@@ -266,11 +270,15 @@ export default function Leaderboard() {
       <footer className="w-full bg-[#0a0a0a] border-t border-[#3b82f6]/20 pt-8 pb-6 relative z-20 mt-auto">
         <div className="max-w-screen-xl mx-auto flex flex-col items-center justify-center text-center px-4">
           <div className="flex gap-6 mb-4">
-            {["youtube", "kick", "discord"].map(i => (
-              <a key={i} href="#" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
-                <img src={`/icons/${i}.${i === 'kick' ? 'png' : 'webp'}`} alt={i} className="w-5 h-5 filter brightness-0 invert" />
-              </a>
-            ))}
+            <a href="https://www.youtube.com/@zynko333/featured" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
+              <img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5 filter brightness-0 invert" />
+            </a>
+            <a href="https://kick.com/zynkogambles" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
+              <img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert" />
+            </a>
+            <a href="https://discord.gg/zynko" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all">
+              <img src="/icons/discord.webp" alt="Discord" className="w-5 h-5 filter brightness-0 invert" />
+            </a>
           </div>
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
         </div>
