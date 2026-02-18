@@ -123,15 +123,27 @@ export default function Leaderboard() {
       const data = await response.json();
       const rawList = data.rankings || []; 
 
-      const formatted = rawList.map((p) => {
-        // FIX: API rank is 0-indexed. Adding +1 to match manual prizes and board slots.
-        const currentRank = parseInt(p.rank) + 1; 
+      // 1. Process data first without assigning rank yet
+      let processedPlayers = rawList.map((p) => ({
+        // Use hash_id if available, otherwise temp ID
+        id: p.user?.hash_id || `temp-${Math.random()}`,
+        username: p.user?.name || "Anonymous",
+        avatar: p.user?.avatar || "/default-avatar.png",
+        // Parse the amount immediately
+        wageredAmount: parseFloat(p.total) / 100, 
+      }));
+
+      // 2. FORCE SORT: Highest wager is always Rank 1
+      processedPlayers.sort((a, b) => b.wageredAmount - a.wageredAmount);
+
+      // 3. Assign Rank based on the new sorted order
+      const formatted = processedPlayers.map((p, index) => {
+        const currentRank = index + 1; 
         return {
-          id: p.user?.hash_id || `user-${currentRank}`,
+          ...p,
           rank: currentRank,
-          username: p.user?.name || "Anonymous",
-          avatar: p.user?.avatar || "/default-avatar.png",
-          wageredAmount: parseFloat(p.total) / 100,
+          // Ensure ID is unique if hash was missing
+          id: p.id.startsWith('temp-') ? `user-${currentRank}` : p.id,
           reward: getPrizeForRank(currentRank),
         };
       });
