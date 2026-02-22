@@ -2,17 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom fonts if you're using any */
-/* You can import fonts in _app.js using @import or link from Google Fonts */
-
-/* Smooth scroll */
+/* Custom fonts */
 html {
   scroll-behavior: smooth;
 }
 
-/* Background Grid with tighter spacing and lighter red tone */
+/* Optimized Background Grid */
 .bg-grid {
-  background-color: #1a0000; /* Deep dark red */
+  background-color: #1a0000;
   background-image:
     linear-gradient(to right, rgba(255, 60, 60, 0.07) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 60, 60, 0.07) 1px, transparent 1px);
@@ -21,9 +18,10 @@ html {
   width: 100%;
 }
 
+/* Optimized glow effect using gradient instead of blur filter */
 .bg-grid::after {
   content: "";
-  position: absolute; /* was fixed */
+  position: absolute;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
@@ -38,39 +36,11 @@ body {
   background-color: #0a0000;
   color: white;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* All keyframes and animation classes have been moved to tailwind.config.js */
-
-/* For image hover effects or smooth transitions if needed */
-img {
-  transition: transform 0.3s ease;
-}
-img:hover {
-  transform: scale(1.03);
-}
-
-@layer utilities {
-  .sparkle {
-    @apply absolute bottom-0 w-1 h-1 bg-red-500 rounded-full opacity-70;
-    animation: floatUp linear infinite;
-  }
-
-  @keyframes floatUp {
-    0% {
-      transform: translateY(0) scale(1);
-      opacity: 0.7;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(-100vh) scale(0.5);
-      opacity: 0;
-    }
-  }
-}
-
+/* Optimized Floating Animation - using CSS instead of JS where possible */
 @keyframes floatItem {
   0% {
     transform: translateY(100vh) rotate(0deg) scale(1);
@@ -94,17 +64,58 @@ img:hover {
 
 .animate-floatItem {
   animation-name: floatItem;
+  animation-duration: 20s;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  animation-delay: var(--delay, 0s);
 }
 
-/* Hide scrollbar */
+/* Sparkle Animation */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.sparkle {
+  @apply absolute bottom-0 w-1 h-1 bg-red-500 rounded-full opacity-70;
+  animation: floatUp linear infinite;
+}
+
+/* Hide scrollbar but keep functionality */
 ::-webkit-scrollbar {
-  width: 0px;
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Make the layout take full height */
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 80, 80, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 80, 80, 0.5);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 80, 80, 0.3) transparent;
+}
+
+/* Layout utilities */
 html, body {
   height: 100%;
   margin: 0;
@@ -112,348 +123,92 @@ html, body {
   flex-direction: column;
 }
 
-/* Main container should fill available space */
 main {
   flex: 1;
 }
 
-/* Footer styling — always sticks to the bottom */
 footer {
   margin-top: auto;
   position: relative;
-  z-index: 2; /* stays above glow */
+  z-index: 2;
 }
 
-/* Glow should stay behind everything */
-.bg-grid::after {
-  z-index: 0;
+/* Image hover effects */
+img {
+  transition: transform 0.3s ease;
 }
 
-@keyframes roll {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-  100% { transform: translateY(0); }
+img:hover {
+  transform: scale(1.03);
 }
 
-.animate-roll {
-  animation: roll 0.2s infinite;
-}
-
-/* ========================= */
-/* 🔥 Dynamic Background Glow */
-/* ========================= */
-
-@keyframes pulseBlue {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-    filter: blur(160px);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-    filter: blur(200px);
-  }
-}
-
-@keyframes pulseGold {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-    filter: blur(160px);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-    filter: blur(200px);
-  }
-}
-
-.animate-pulse-blue {
-  animation: pulseBlue 5s ease-in-out infinite;
-}
-
-.animate-pulse-gold {
-  animation: pulseGold 5s ease-in-out infinite;
-}
-
-/* /styles/globals.css */
-.chat-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 300px;
-  max-height: 400px;
-  overflow-y: auto;
-  background-color: rgba(0, 0, 0, 0.8);
-  border-radius: 8px;
-  padding: 10px;
-  z-index: 1000;
-}
-
-.messages {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.message {
-  color: white;
-  font-size: 14px;
-}
-
-.message strong {
-  color: #ff4500;
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  100% {
-    background-position: 0% 0%;
-  }
-}
-
-.animated-gradient {
-  background-size: 400% 400%; /* bigger to make movement more visible */
-  animation: gradientShift 3s ease infinite; /* slightly faster */
-}
-
-/* Added for gold theme */
-.border-gold-faint {
-  border-color: rgba(255, 204, 51, 0.2);
-}
-.hover\:bg-gold-faint:hover {
-  background-color: rgba(255, 204, 51, 0.05);
-}
-.text-gold-main {
-  color: rgba(255,205,60,0.95);
-}
-.bg-gold-dark {
-  background-color: #2a210f; /* A warmer, dark gold background */
-}
-.bg-gold-timer {
-  background: linear-gradient(135deg, rgba(255,204,51,0.1), rgba(212,175,55,0.15));
-}
-.border-gold-timer {
-  border-color: rgba(255, 204, 51, 0.4);
-}
-
-
-/* ========================================= */
-/* 🏆 LEADERBOARD SPECIFIC STYLES (NEW)     */
-/* ========================================= */
-
-:root {
-  /* Inherit generic colors, define specific ones for leaderboard */
-  --lb-card-bg: rgba(20, 20, 20, 0.6);
-  --lb-border: rgba(255, 255, 255, 0.1);
-  --lb-accent: #fca311; /* CSDrop Orange */
-  --lb-text-muted: #a1a1aa;
-}
-
-/* --- NAVBAR STYLES --- */
-.navbar {
-  background-color: rgba(10, 0, 0, 0.8); /* Semi-transparent dark matching your theme */
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--lb-border);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.nav-brand {
-  font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: 1px;
-  color: white;
-  text-transform: uppercase;
-}
-
-.nav-links {
-  display: flex;
-  gap: 1rem;
-}
-
-.nav-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--lb-text-muted);
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-weight: 600;
-  border-radius: 6px;
-  transition: all 0.2s;
-  font-size: 0.9rem;
-}
-
-.nav-btn:hover {
-  color: white;
-  background: rgba(255,255,255,0.05);
-}
-
-.nav-btn.active {
-  background-color: var(--lb-accent);
-  color: #000;
-  border-color: var(--lb-accent);
-  box-shadow: 0 0 15px rgba(252, 163, 17, 0.4);
-}
-
-/* --- LEADERBOARD CONTAINER & HEADER --- */
-.container {
-  max-width: 1000px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  width: 100%;
-}
-
-.header-banner {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.banner-img {
-  width: 100%;
-  max-height: 250px;
-  object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--lb-border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.header-banner h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(to right, #fff, var(--lb-accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.subtitle {
-  color: var(--lb-text-muted);
-  font-size: 1.1rem;
-}
-
-/* STATUS BADGES */
-.status-badge {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  letter-spacing: 0.05em;
-}
-
-.status-badge.live {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.status-badge.ended {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* --- LEADERBOARD TABLE CARD --- */
-.leaderboard-card {
-  background: var(--lb-card-bg);
-  border: 1px solid var(--lb-border);
-  border-radius: 16px;
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(5px);
 }
 
-.faded {
-  opacity: 0.5;
-  filter: grayscale(1);
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.lb-table {
-  width: 100%;
-  border-collapse: collapse;
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
 }
 
-.lb-table th {
-  background: rgba(0, 0, 0, 0.4);
-  color: var(--lb-text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  padding: 1.2rem;
-  text-align: left;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--lb-border);
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.lb-table td {
-  padding: 1rem 1.2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 0.95rem;
-  vertical-align: middle;
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.lb-table tr:last-child td {
-  border-bottom: none;
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-floatItem,
+  .sparkle {
+    animation: none;
+    opacity: 0.5;
+  }
 }
 
-/* TABLE COLUMNS */
-.rank { width: 70px; text-align: center; font-weight: bold; color: var(--lb-text-muted); font-size: 1.1rem; }
-.player { width: 40%; }
-.wager { text-align: right; font-family: monospace; color: #fff; font-weight: 500; font-size: 1.05rem; }
-.prize { text-align: right; font-weight: 800; color: var(--lb-accent); font-size: 1.1rem; text-shadow: 0 0 10px rgba(252, 163, 17, 0.2); }
-
-/* USER AVATAR WRAPPER */
-.user-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
 }
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #333;
-  object-fit: cover;
-  border: 1px solid rgba(255,255,255,0.1);
+.will-change-opacity {
+  will-change: opacity;
 }
 
-/* TOP 3 RANK HIGHLIGHTS */
-.rank-1 .rank { color: #FFD700; font-size: 1.4rem; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-.rank-2 .rank { color: #C0C0C0; font-size: 1.3rem; }
-.rank-3 .rank { color: #CD7F32; font-size: 1.2rem; }
-
-.rank-1 { background: linear-gradient(90deg, rgba(255, 215, 0, 0.08), transparent); }
-.rank-2 { background: linear-gradient(90deg, rgba(192, 192, 192, 0.05), transparent); }
-.rank-3 { background: linear-gradient(90deg, rgba(205, 127, 50, 0.05), transparent); }
-
-/* Loading State */
-.status-message {
-  padding: 3rem;
-  text-align: center;
-  color: var(--lb-text-muted);
-  font-style: italic;
-}
-
-/* Mobile Responsive Adjustments */
-@media (max-width: 640px) {
-  .navbar { flex-direction: column; gap: 1rem; padding: 1rem; }
-  .header-banner h1 { font-size: 1.8rem; }
-  .wager { display: none; } /* Hide wager column on small screens to save space */
-  .rank { width: 40px; font-size: 1rem; }
-  .lb-table th, .lb-table td { padding: 0.8rem; }
+/* GPU acceleration for animated elements */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }

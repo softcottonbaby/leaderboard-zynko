@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import '../styles/globals.css'; // adjust if different
+import '../styles/globals.css';
 
 export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -21,7 +21,6 @@ export default function MyApp({ Component, pageProps }) {
       </AnimatePresence>
 
       <footer className="mt-auto z-10 relative">
-        {/* Your footer content here */}
       </footer>
     </div>
   );
