@@ -6,7 +6,7 @@ const SITES = {
   csdrop: {
     id: 'csdrop',
     name: 'CSDrop',
-    logo: 'csdrop/logo_csdrop.webp',
+    logo: '/sites/csdrop-logo.webp',
     apiEndpoint: '/api/csdrop-leaderboard',
     prizes: { 1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 },
     accentColor: 'rgba(59, 130, 246, 0.95)',
