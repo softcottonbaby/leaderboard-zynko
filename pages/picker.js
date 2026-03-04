@@ -211,76 +211,139 @@ const ChatMessage = memo(({ msg, isEntry }) => {
 ChatMessage.displayName = 'ChatMessage';
 
 // ── SlotMachineWheel ──────────────────────────────────────────────────────────
-// FIXED: Added candidatesRef to snapshot participants at roll start
 const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete }) => {
     const outerRef    = useRef(null);
     const stripRef    = useRef(null);
     const busyRef     = useRef(false);
     const timersRef   = useRef([]);
-    // FIX: Use a ref to store the candidates snapshot so we don't re-render during roll
-    const candidatesRef = useRef([]);
+    // FIX: Snapshot ref that captures candidates when roll starts
+    const snapshotRef = useRef([]);
     const [items, setItems]           = useState([]);
     const [highlightIdx, setHighlight] = useState(null);
+    const [hasSnapshot, setHasSnapshot] = useState(false);
 
     const ITEM_W = 120, GAP = 14, STEP = 134, COPIES = 12;
 
     const addTimer = (fn, ms) => { const id = setTimeout(fn, ms); timersRef.current.push(id); return id; };
     const clearAllTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
 
-    // FIX: Build items from snapshot ref, not live candidates prop
-    const buildItems = useCallback((sourceCandidates) => {
-        if (!sourceCandidates || sourceCandidates.length === 0) { setItems([]); return; }
-        const seen = new Set(), unique = [];
-        sourceCandidates.forEach(c => { if (!seen.has(c.user)) { seen.add(c.user); unique.push(c); } });
-        const built = [];
-        for (let copy = 0; copy < COPIES; copy++) unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
-        setItems(built);
-        setHighlight(null);
-    }, []);
-
-    // Initialize items when not rolling
+    // Build items from candidates (for preview when not rolling)
     useEffect(() => {
-        if (!isRolling) {
-            candidatesRef.current = candidates; // Keep ref updated when not rolling
-            buildItems(candidates);
+        if (hasSnapshot) return; // Don't update when rolling
+        
+        if (!candidates || candidates.length === 0) { 
+            setItems([]); 
+            return; 
         }
-        // FIX: When rolling starts, we DON'T rebuild items - we use the snapshot
-    }, [candidates, isRolling, buildItems]);
+        
+        const seen = new Set(), unique = [];
+        candidates.forEach(c => { 
+            if (!seen.has(c.user)) { 
+                seen.add(c.user); 
+                unique.push(c); 
+            } 
+        });
+        
+        const built = [];
+        for (let copy = 0; copy < COPIES; copy++) {
+            unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
+        }
+        
+        setItems(built);
+    }, [candidates, hasSnapshot]);
+
+    // Take snapshot when rolling starts
+    useEffect(() => {
+        if (isRolling && !hasSnapshot) {
+            // Capture current candidates
+            const currentCandidates = candidates || [];
+            
+            if (currentCandidates.length === 0) {
+                console.warn('No candidates available when roll started');
+                return;
+            }
+            
+            snapshotRef.current = [...currentCandidates];
+            setHasSnapshot(true);
+            
+            // Build items from snapshot
+            const seen = new Set(), unique = [];
+            snapshotRef.current.forEach(c => { 
+                if (!seen.has(c.user)) { 
+                    seen.add(c.user); 
+                    unique.push(c); 
+                } 
+            });
+            
+            const built = [];
+            for (let copy = 0; copy < COPIES; copy++) {
+                unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
+            }
+            
+            setItems(built);
+            setHighlight(null);
+        }
+    }, [isRolling, hasSnapshot, candidates]);
+
+    // Reset when rolling stops
+    useEffect(() => {
+        if (!isRolling && hasSnapshot) {
+            const timer = setTimeout(() => {
+                setHasSnapshot(false);
+                snapshotRef.current = [];
+                onComplete?.();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isRolling, hasSnapshot, onComplete]);
 
     // Sync winner avatar into strip items when it arrives
     useEffect(() => {
         if (!finalWinner?.avatar) return;
-        setItems(prev => prev.map(it => it.user === finalWinner.user ? { ...it, avatar: finalWinner.avatar } : it));
+        setItems(prev => prev.map(it => 
+            it.user === finalWinner.user ? { ...it, avatar: finalWinner.avatar } : it
+        ));
     }, [finalWinner?.avatar, finalWinner?.user]);
 
+    // Run animation when we have snapshot and winner
     useEffect(() => {
-        if (!isRolling || !finalWinner || items.length === 0) return;
+        if (!hasSnapshot || !finalWinner || items.length === 0) return;
         if (!outerRef.current || !stripRef.current) return;
         if (busyRef.current) return;
+        
         busyRef.current = true;
         setHighlight(null);
         clearAllTimers();
 
-        // FIX: Use the snapshot that was taken when roll started
-        const rollingCandidates = candidatesRef.current;
-        
         const strip = stripRef.current;
         const outerW = outerRef.current.offsetWidth;
+        
+        // Use the snapshot
+        const rollingCandidates = snapshotRef.current;
+        
         const seen = new Set();
         rollingCandidates.forEach(it => seen.add(it.user));
-        const uniqueCount = seen.size || 1; // Prevent divide by zero
+        const uniqueCount = seen.size || 1;
         const centerPx = outerW / 2 - STEP / 2;
         const xForIdx = idx => centerPx - idx * STEP;
 
-        // Find winner in current items (which were built from snapshot)
+        // Find winner in items
         const winCopyStart = 7 * uniqueCount;
         let wIdx = -1;
         for (let i = winCopyStart; i < winCopyStart + uniqueCount; i++) {
-            if (items[i]?.user === finalWinner.user) { wIdx = i; break; }
+            if (items[i]?.user === finalWinner.user) { 
+                wIdx = i; 
+                break; 
+            }
         }
-        if (wIdx === -1) wIdx = items.findIndex(it => it.user === finalWinner.user);
+        
+        if (wIdx === -1) {
+            wIdx = items.findIndex(it => it.user === finalWinner.user);
+        }
+        
         if (wIdx === -1) { 
-            busyRef.current = false; 
+            console.error('Winner not found in items', finalWinner.user);
+            busyRef.current = false;
             return; 
         }
 
@@ -293,17 +356,41 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
         requestAnimationFrame(() => requestAnimationFrame(() => {
             strip.style.transition = 'transform 1s cubic-bezier(0.55, 0, 1, 0.45)';
             strip.style.transform = `translateX(${xForIdx(wIdx) + uniqueCount * STEP * 3}px)`;
-            addTimer(() => { strip.style.transition = 'transform 2.8s linear'; strip.style.transform = `translateX(${xForIdx(wIdx) + STEP * 0.72 + STEP}px)`; }, 950);
-            addTimer(() => { strip.style.transition = 'transform 1.8s cubic-bezier(0.12, 0, 0.05, 1)'; strip.style.transform = `translateX(${overX}px)`; }, 3750);
-            addTimer(() => { strip.style.transition = 'transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)'; strip.style.transform = `translateX(${xForIdx(wIdx)}px)`; }, 5600);
-            addTimer(() => { setHighlight(wIdx); busyRef.current = false; onComplete?.(); }, 6550);
+            
+            addTimer(() => { 
+                strip.style.transition = 'transform 2.8s linear'; 
+                strip.style.transform = `translateX(${xForIdx(wIdx) + STEP * 0.72 + STEP}px)`; 
+            }, 950);
+            
+            addTimer(() => { 
+                strip.style.transition = 'transform 1.8s cubic-bezier(0.12, 0, 0.05, 1)'; 
+                strip.style.transform = `translateX(${overX}px)`; 
+            }, 3750);
+            
+            addTimer(() => { 
+                strip.style.transition = 'transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)'; 
+                strip.style.transform = `translateX(${xForIdx(wIdx)}px)`; 
+            }, 5600);
+            
+            addTimer(() => { 
+                setHighlight(wIdx); 
+                busyRef.current = false; 
+            }, 6550);
         }));
 
-        return () => { clearAllTimers(); busyRef.current = false; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isRolling, finalWinner, items]); // Keep items dependency for the animation logic
+        return () => { 
+            clearAllTimers(); 
+            busyRef.current = false; 
+        };
+    }, [hasSnapshot, finalWinner, items]);
 
-    if (items.length === 0) return <div className="w-full h-[168px] flex items-center justify-center text-white/20 text-sm">No entries yet</div>;
+    if (items.length === 0) {
+        return (
+            <div className="w-full h-[168px] flex items-center justify-center text-white/20 text-sm">
+                No entries yet
+            </div>
+        );
+    }
 
     return (
         <div ref={outerRef} className="relative w-full overflow-hidden select-none" style={{ height: 168 }}>
@@ -638,7 +725,7 @@ export default function Picker() {
     const handlePickWinner = useCallback(() => {
         if (isPicking || participants.length === 0) return;
         
-        // FIX: Create a deep snapshot of current participants to prevent mid-roll updates
+        // Create eligible list from current participants
         const eligible = Array.from(new Map(participants.map(p => [p.user, p])).values());
         const chosen = eligible[Math.floor(Math.random() * eligible.length)];
 
@@ -647,7 +734,9 @@ export default function Picker() {
             fetchKickAvatar(chosen.user).then(url => {
                 if (!url) return;
                 setWinner(prev => prev?.user === chosen.user ? { ...prev, avatar: url } : prev);
-                setMessages(prev => prev.map(m => m.user === chosen.user && !m.avatar ? { ...m, avatar: url } : m));
+                setMessages(prev => prev.map(m => 
+                    m.user === chosen.user && !m.avatar ? { ...m, avatar: url } : m
+                ));
             });
         }
 
@@ -656,7 +745,9 @@ export default function Picker() {
         setRollCount(prev => prev + 1);
     }, [isPicking, participants]);
 
-    const handleRollComplete = useCallback(() => setIsPicking(false), []);
+    const handleRollComplete = useCallback(() => {
+        setIsPicking(false);
+    }, []);
 
     const addTestBots = useCallback(() => {
         setIsTestMode(true);
