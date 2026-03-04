@@ -22,7 +22,7 @@ const SITES = {
     apiEndpoint: '/api/ruxbet-leaderboard',
     prizes: { 1: 500, 2: 300, 3: 200, 4: 100, 5: 50, 6: 25, 7: 15, 8: 10, 9: 5, 10: 5 },
     accentColor: 'rgba(0, 255, 0, 0.95)',
-    coinIcon: '/csgold/app-coin-green.webp',
+    coinIcon: '/ruxbet/usdcoin.png',
     endDate: '2026-03-09T23:59:59Z',
     totalPrize: '2,000',
     theme: 'green'
