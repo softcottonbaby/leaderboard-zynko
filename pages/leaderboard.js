@@ -20,11 +20,11 @@ const SITES = {
     name: 'Ruxbet',
     logo: '/ruxbet/ruxbetlogo.png',
     apiEndpoint: '/api/ruxbet-leaderboard',
-    prizes: { 1: 500, 2: 300, 3: 200, 4: 100, 5: 50, 6: 25, 7: 15, 8: 10, 9: 5, 10: 5 },
+    prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 5 },
     accentColor: 'rgba(0, 255, 0, 0.95)',
     coinIcon: '/ruxbet/usdcoin.png',
     endDate: '2026-03-09T23:59:59Z',
-    totalPrize: '2,000',
+    totalPrize: '495',
     theme: 'green'
   }
 };
@@ -194,10 +194,8 @@ export default function Leaderboard() {
     try {
       const response = await fetch(activeSite.apiEndpoint);
       
-      // If response not ok, handle gracefully
       if (!response.ok) {
         console.warn(`API error for ${activeSiteId}: HTTP ${response.status}`);
-        // For ruxbet, return empty array instead of crashing
         if (activeSiteId === 'ruxbet') {
           setPlayers([]);
           setError(null);
@@ -212,7 +210,6 @@ export default function Leaderboard() {
       let processedPlayers = [];
       
       if (activeSiteId === 'ruxbet') {
-        // Ruxbet API format: { data: [{ name, endsAt, standings: [...] }] }
         const leaderboardData = Array.isArray(data.data) ? data.data[0] : data;
         const standings = leaderboardData?.standings || [];
         
@@ -225,7 +222,6 @@ export default function Leaderboard() {
           reward: p.prizeUsd ? `${p.prizeUsd}` : "-"
         }));
       } else {
-        // CSDrop format: { rankings: [...] }
         const rawList = data.rankings || [];
         processedPlayers = rawList.map((p, idx) => ({
           id: p.user?.hash_id || `temp-${idx}`,
@@ -251,7 +247,6 @@ export default function Leaderboard() {
       setError(null);
     } catch (err) {
       console.error("Leaderboard fetch failed:", err);
-      // Don't crash, just show empty state
       setPlayers([]);
       setError(null);
     } finally { 
