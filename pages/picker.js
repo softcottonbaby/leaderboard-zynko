@@ -150,7 +150,6 @@ const KickBadge = memo(({ badge }) => {
 KickBadge.displayName = 'KickBadge';
 
 // ── UserAvatar ────────────────────────────────────────────────────────────────
-// FIXED: Enhanced with better URL validation and referrer policy
 const UserAvatar = memo(({ src, alt, className }) => {
     const [error, setError] = useState(false);
     
@@ -158,7 +157,6 @@ const UserAvatar = memo(({ src, alt, className }) => {
         setError(false); 
     }, [src]);
     
-    // FIXED: Better validation for avatar URLs
     const isValidSrc = src && typeof src === 'string' && (
         src.startsWith('http://') || 
         src.startsWith('https://') ||
@@ -180,7 +178,7 @@ const UserAvatar = memo(({ src, alt, className }) => {
             className={`${className} object-cover`} 
             loading="lazy" 
             onError={() => setError(true)}
-            referrerPolicy="no-referrer" // FIXED: Prevent referrer issues with Kick images
+            referrerPolicy="no-referrer"
         />
     );
 });
@@ -213,11 +211,14 @@ const ChatMessage = memo(({ msg, isEntry }) => {
 ChatMessage.displayName = 'ChatMessage';
 
 // ── SlotMachineWheel ──────────────────────────────────────────────────────────
+// FIXED: Added candidatesRef to snapshot participants at roll start
 const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete }) => {
     const outerRef    = useRef(null);
     const stripRef    = useRef(null);
     const busyRef     = useRef(false);
     const timersRef   = useRef([]);
+    // FIX: Use a ref to store the candidates snapshot so we don't re-render during roll
+    const candidatesRef = useRef([]);
     const [items, setItems]           = useState([]);
     const [highlightIdx, setHighlight] = useState(null);
 
@@ -226,15 +227,25 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
     const addTimer = (fn, ms) => { const id = setTimeout(fn, ms); timersRef.current.push(id); return id; };
     const clearAllTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
 
-    useEffect(() => {
-        if (!candidates || candidates.length === 0) { setItems([]); return; }
+    // FIX: Build items from snapshot ref, not live candidates prop
+    const buildItems = useCallback((sourceCandidates) => {
+        if (!sourceCandidates || sourceCandidates.length === 0) { setItems([]); return; }
         const seen = new Set(), unique = [];
-        candidates.forEach(c => { if (!seen.has(c.user)) { seen.add(c.user); unique.push(c); } });
+        sourceCandidates.forEach(c => { if (!seen.has(c.user)) { seen.add(c.user); unique.push(c); } });
         const built = [];
         for (let copy = 0; copy < COPIES; copy++) unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
         setItems(built);
         setHighlight(null);
-    }, [candidates]);
+    }, []);
+
+    // Initialize items when not rolling
+    useEffect(() => {
+        if (!isRolling) {
+            candidatesRef.current = candidates; // Keep ref updated when not rolling
+            buildItems(candidates);
+        }
+        // FIX: When rolling starts, we DON'T rebuild items - we use the snapshot
+    }, [candidates, isRolling, buildItems]);
 
     // Sync winner avatar into strip items when it arrives
     useEffect(() => {
@@ -250,21 +261,28 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
         setHighlight(null);
         clearAllTimers();
 
+        // FIX: Use the snapshot that was taken when roll started
+        const rollingCandidates = candidatesRef.current;
+        
         const strip = stripRef.current;
         const outerW = outerRef.current.offsetWidth;
         const seen = new Set();
-        items.forEach(it => seen.add(it.user));
-        const uniqueCount = seen.size;
+        rollingCandidates.forEach(it => seen.add(it.user));
+        const uniqueCount = seen.size || 1; // Prevent divide by zero
         const centerPx = outerW / 2 - STEP / 2;
         const xForIdx = idx => centerPx - idx * STEP;
 
+        // Find winner in current items (which were built from snapshot)
         const winCopyStart = 7 * uniqueCount;
         let wIdx = -1;
         for (let i = winCopyStart; i < winCopyStart + uniqueCount; i++) {
             if (items[i]?.user === finalWinner.user) { wIdx = i; break; }
         }
         if (wIdx === -1) wIdx = items.findIndex(it => it.user === finalWinner.user);
-        if (wIdx === -1) { busyRef.current = false; return; }
+        if (wIdx === -1) { 
+            busyRef.current = false; 
+            return; 
+        }
 
         const overX = xForIdx(wIdx) - STEP * 0.72;
         const startX = xForIdx(wIdx) + uniqueCount * STEP * 4;
@@ -283,7 +301,7 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
 
         return () => { clearAllTimers(); busyRef.current = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isRolling, finalWinner, items]);
+    }, [isRolling, finalWinner, items]); // Keep items dependency for the animation logic
 
     if (items.length === 0) return <div className="w-full h-[168px] flex items-center justify-center text-white/20 text-sm">No entries yet</div>;
 
@@ -334,7 +352,6 @@ const PUSHER_CLUSTER = 'us2';
 const avatarCache = new Map();
 
 // ── fetchKickAvatar ───────────────────────────────────────────────────────────
-// FIXED: Better error handling and URL validation
 async function fetchKickAvatar(username) {
     if (!username) return null;
     if (avatarCache.has(username)) return avatarCache.get(username);
@@ -344,7 +361,6 @@ async function fetchKickAvatar(username) {
         if (!res.ok) throw new Error('proxy error');
         const data = await res.json();
         
-        // FIXED: Validate URL before caching
         const url = data.avatar && typeof data.avatar === 'string' && data.avatar.startsWith('http') 
             ? data.avatar 
             : null;
@@ -621,8 +637,10 @@ export default function Picker() {
 
     const handlePickWinner = useCallback(() => {
         if (isPicking || participants.length === 0) return;
+        
+        // FIX: Create a deep snapshot of current participants to prevent mid-roll updates
         const eligible = Array.from(new Map(participants.map(p => [p.user, p])).values());
-        const chosen   = eligible[Math.floor(Math.random() * eligible.length)];
+        const chosen = eligible[Math.floor(Math.random() * eligible.length)];
 
         // Pre-fetch avatar so wheel has it immediately
         if (!chosen.avatar) {
