@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   
   // If no API key configured, return empty data gracefully
   if (!RUXBET_API_KEY) {
-    console.warn('RUXBET_API_KEY not configured, returning empty leaderboard');
+    console.warn('RUXBET_API_KEY not configured');
     const fallbackData = {
       data: [{
         name: 'Ruxbet Weekly Race',
@@ -31,10 +31,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Try to get specific leaderboard by name, or fetch all
-    const leaderboardName = 'Sneakzy Weekly Race'; // Change this to your actual leaderboard name
+    // CHANGE THIS TO YOUR EXACT LEADERBOARD NAME FROM RUXBET DASHBOARD
+    const leaderboardName = 'Zynko Weekly Race'; // <-- UPDATE THIS WITH YOUR ACTUAL LEADERBOARD NAME
     const encodedName = encodeURIComponent(leaderboardName);
     
+    // FIXED: Removed space in URL
     const response = await fetch(`https://api.ruxbet.com/leaderboards/export/${encodedName}`, {
       headers: {
         'Authorization': `Bearer ${RUXBET_API_KEY}`,
@@ -44,7 +45,9 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      // If specific name fails, try fetching all
+      console.log(`Specific leaderboard not found (${response.status}), trying to fetch all...`);
+      
+      // Try fetching all leaderboards
       const allResponse = await fetch('https://api.ruxbet.com/leaderboards/export', {
         headers: {
           'Authorization': `Bearer ${RUXBET_API_KEY}`,
@@ -58,31 +61,38 @@ export default async function handler(req, res) {
       }
 
       const allData = await allResponse.json();
-      cache = { data: allData, timestamp: now };
-      return res.status(200).json(allData);
+      console.log('Available leaderboards:', allData.data?.map(l => l.name));
+      
+      // If we got data array, use first one or find matching one
+      if (allData.data && allData.data.length > 0) {
+        cache = { data: allData, timestamp: now };
+        return res.status(200).json(allData);
+      }
+      
+      throw new Error('No leaderboards found');
     }
 
     const data = await response.json();
-    // Wrap single leaderboard in data array for consistent format
     const wrappedData = { data: [data] };
     cache = { data: wrappedData, timestamp: now };
     return res.status(200).json(wrappedData);
 
   } catch (error) {
-    console.error('Ruxbet API error:', error);
+    console.error('Ruxbet API error:', error.message);
     
-    // Return cached data even if expired, or empty fallback
+    // Return cached data even if expired
     if (cache.data) {
+      console.log('Returning cached data');
       return res.status(200).json(cache.data);
     }
 
-    const fallbackData = {
+    // Return empty fallback
+    return res.status(200).json({
       data: [{
         name: 'Ruxbet Weekly Race',
         endsAt: '2026-03-09T23:59:59.000+00:00',
         standings: []
       }]
-    };
-    return res.status(200).json(fallbackData);
+    });
   }
 }
