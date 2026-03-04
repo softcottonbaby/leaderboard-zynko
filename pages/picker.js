@@ -212,24 +212,48 @@ ChatMessage.displayName = 'ChatMessage';
 
 // ── SlotMachineWheel ──────────────────────────────────────────────────────────
 const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete }) => {
-    const outerRef    = useRef(null);
-    const stripRef    = useRef(null);
-    const busyRef     = useRef(false);
-    const timersRef   = useRef([]);
-    // FIX: Snapshot ref that captures candidates when roll starts
+    const outerRef = useRef(null);
+    const stripRef = useRef(null);
+    const busyRef = useRef(false);
+    const timersRef = useRef([]);
     const snapshotRef = useRef([]);
-    const [items, setItems]           = useState([]);
+    const animationFrameRef = useRef(null);
+    const hasCompletedRef = useRef(false);
+    
+    const [items, setItems] = useState([]);
     const [highlightIdx, setHighlight] = useState(null);
     const [hasSnapshot, setHasSnapshot] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
 
     const ITEM_W = 120, GAP = 14, STEP = 134, COPIES = 12;
 
-    const addTimer = (fn, ms) => { const id = setTimeout(fn, ms); timersRef.current.push(id); return id; };
-    const clearAllTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
+    const clearAllTimers = useCallback(() => {
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+        }
+    }, []);
+
+    const resetState = useCallback(() => {
+        clearAllTimers();
+        busyRef.current = false;
+        setIsAnimating(false);
+        hasCompletedRef.current = false;
+    }, [clearAllTimers]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            clearAllTimers();
+            busyRef.current = false;
+        };
+    }, [clearAllTimers]);
 
     // Build items from candidates (for preview when not rolling)
     useEffect(() => {
-        if (hasSnapshot) return; // Don't update when rolling
+        if (hasSnapshot || isAnimating) return;
         
         if (!candidates || candidates.length === 0) { 
             setItems([]); 
@@ -238,7 +262,7 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
         
         const seen = new Set(), unique = [];
         candidates.forEach(c => { 
-            if (!seen.has(c.user)) { 
+            if (c?.user && !seen.has(c.user)) { 
                 seen.add(c.user); 
                 unique.push(c); 
             } 
@@ -246,16 +270,15 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
         
         const built = [];
         for (let copy = 0; copy < COPIES; copy++) {
-            unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
+            unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}-${c.user}` }));
         }
         
         setItems(built);
-    }, [candidates, hasSnapshot]);
+    }, [candidates, hasSnapshot, isAnimating]);
 
     // Take snapshot when rolling starts
     useEffect(() => {
-        if (isRolling && !hasSnapshot) {
-            // Capture current candidates
+        if (isRolling && !hasSnapshot && !isAnimating) {
             const currentCandidates = candidates || [];
             
             if (currentCandidates.length === 0) {
@@ -263,7 +286,14 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
                 return;
             }
             
-            snapshotRef.current = [...currentCandidates];
+            // Validate candidates
+            const validCandidates = currentCandidates.filter(c => c && c.user);
+            if (validCandidates.length === 0) {
+                console.error('No valid candidates with user property');
+                return;
+            }
+            
+            snapshotRef.current = [...validCandidates];
             setHasSnapshot(true);
             
             // Build items from snapshot
@@ -277,13 +307,13 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
             
             const built = [];
             for (let copy = 0; copy < COPIES; copy++) {
-                unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
+                unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}-${c.user}` }));
             }
             
             setItems(built);
             setHighlight(null);
         }
-    }, [isRolling, hasSnapshot, candidates]);
+    }, [isRolling, hasSnapshot, isAnimating, candidates]);
 
     // Reset when rolling stops
     useEffect(() => {
@@ -291,98 +321,175 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete 
             const timer = setTimeout(() => {
                 setHasSnapshot(false);
                 snapshotRef.current = [];
+                resetState();
                 onComplete?.();
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [isRolling, hasSnapshot, onComplete]);
+    }, [isRolling, hasSnapshot, resetState, onComplete]);
 
     // Sync winner avatar into strip items when it arrives
     useEffect(() => {
-        if (!finalWinner?.avatar) return;
+        if (!finalWinner?.user) return;
+        
         setItems(prev => prev.map(it => 
             it.user === finalWinner.user ? { ...it, avatar: finalWinner.avatar } : it
         ));
-    }, [finalWinner?.avatar, finalWinner?.user]);
+    }, [finalWinner?.user, finalWinner?.avatar]);
 
     // Run animation when we have snapshot and winner
     useEffect(() => {
-        if (!hasSnapshot || !finalWinner || items.length === 0) return;
-        if (!outerRef.current || !stripRef.current) return;
-        if (busyRef.current) return;
+        // GUARD CLAUSES - Prevent animation if conditions not met
+        if (!hasSnapshot || !finalWinner || items.length === 0) {
+            return;
+        }
+        
+        if (!outerRef.current || !stripRef.current) {
+            console.warn('Refs not available');
+            return;
+        }
+        
+        if (busyRef.current) {
+            console.warn('Animation already in progress');
+            return;
+        }
+        
+        if (!finalWinner.user) {
+            console.error('Winner has no user property');
+            return;
+        }
+
+        // Validate winner exists in items
+        const winnerExists = items.some(it => it.user === finalWinner.user);
+        if (!winnerExists) {
+            console.error('Winner not found in items:', finalWinner.user, 'Available:', items.slice(0, 5).map(i => i.user));
+            return;
+        }
         
         busyRef.current = true;
+        setIsAnimating(true);
         setHighlight(null);
+        hasCompletedRef.current = false;
         clearAllTimers();
 
         const strip = stripRef.current;
         const outerW = outerRef.current.offsetWidth;
         
-        // Use the snapshot
         const rollingCandidates = snapshotRef.current;
         
+        // Validate unique count
         const seen = new Set();
-        rollingCandidates.forEach(it => seen.add(it.user));
+        rollingCandidates.forEach(it => {
+            if (it?.user) seen.add(it.user);
+        });
         const uniqueCount = seen.size || 1;
+        
+        if (uniqueCount === 0) {
+            console.error('No unique candidates');
+            busyRef.current = false;
+            setIsAnimating(false);
+            return;
+        }
+        
         const centerPx = outerW / 2 - STEP / 2;
         const xForIdx = idx => centerPx - idx * STEP;
 
-        // Find winner in items
+        // Find winner with fallback strategies
         const winCopyStart = 7 * uniqueCount;
         let wIdx = -1;
-        for (let i = winCopyStart; i < winCopyStart + uniqueCount; i++) {
+        
+        // Strategy 1: Look in expected position (copy 7)
+        for (let i = winCopyStart; i < winCopyStart + uniqueCount && i < items.length; i++) {
             if (items[i]?.user === finalWinner.user) { 
                 wIdx = i; 
                 break; 
             }
         }
         
+        // Strategy 2: Search all items
         if (wIdx === -1) {
             wIdx = items.findIndex(it => it.user === finalWinner.user);
         }
         
+        // Strategy 3: Use first occurrence as last resort
         if (wIdx === -1) { 
-            console.error('Winner not found in items', finalWinner.user);
+            console.error('Winner not found in items:', finalWinner.user);
             busyRef.current = false;
+            setIsAnimating(false);
             return; 
         }
 
+        // Validate calculations
         const overX = xForIdx(wIdx) - STEP * 0.72;
         const startX = xForIdx(wIdx) + uniqueCount * STEP * 4;
 
+        if (isNaN(overX) || isNaN(startX)) {
+            console.error('Invalid animation coordinates:', { overX, startX, wIdx, uniqueCount });
+            busyRef.current = false;
+            setIsAnimating(false);
+            return;
+        }
+
+        // Apply initial position immediately
         strip.style.transition = 'none';
         strip.style.transform = `translateX(${startX}px)`;
 
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            strip.style.transition = 'transform 1s cubic-bezier(0.55, 0, 1, 0.45)';
-            strip.style.transform = `translateX(${xForIdx(wIdx) + uniqueCount * STEP * 3}px)`;
-            
-            addTimer(() => { 
-                strip.style.transition = 'transform 2.8s linear'; 
-                strip.style.transform = `translateX(${xForIdx(wIdx) + STEP * 0.72 + STEP}px)`; 
-            }, 950);
-            
-            addTimer(() => { 
-                strip.style.transition = 'transform 1.8s cubic-bezier(0.12, 0, 0.05, 1)'; 
-                strip.style.transform = `translateX(${overX}px)`; 
-            }, 3750);
-            
-            addTimer(() => { 
-                strip.style.transition = 'transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)'; 
-                strip.style.transform = `translateX(${xForIdx(wIdx)}px)`; 
-            }, 5600);
-            
-            addTimer(() => { 
-                setHighlight(wIdx); 
-                busyRef.current = false; 
-            }, 6550);
-        }));
+        // Use double RAF for browser paint cycle
+        animationFrameRef.current = requestAnimationFrame(() => {
+            animationFrameRef.current = requestAnimationFrame(() => {
+                // Phase 1: Fast initial movement
+                strip.style.transition = 'transform 1s cubic-bezier(0.55, 0, 1, 0.45)';
+                strip.style.transform = `translateX(${xForIdx(wIdx) + uniqueCount * STEP * 3}px)`;
+                
+                // Phase 2: Linear rolling
+                const timer1 = setTimeout(() => { 
+                    if (!strip || hasCompletedRef.current) return;
+                    strip.style.transition = 'transform 2.8s linear'; 
+                    strip.style.transform = `translateX(${xForIdx(wIdx) + STEP * 0.72 + STEP}px)`; 
+                }, 950);
+                timersRef.current.push(timer1);
+                
+                // Phase 3: Deceleration
+                const timer2 = setTimeout(() => { 
+                    if (!strip || hasCompletedRef.current) return;
+                    strip.style.transition = 'transform 1.8s cubic-bezier(0.12, 0, 0.05, 1)'; 
+                    strip.style.transform = `translateX(${overX}px)`; 
+                }, 3750);
+                timersRef.current.push(timer2);
+                
+                // Phase 4: Final snap
+                const timer3 = setTimeout(() => { 
+                    if (!strip || hasCompletedRef.current) return;
+                    strip.style.transition = 'transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)'; 
+                    strip.style.transform = `translateX(${xForIdx(wIdx)}px)`; 
+                }, 5600);
+                timersRef.current.push(timer3);
+                
+                // Completion
+                const timer4 = setTimeout(() => { 
+                    if (hasCompletedRef.current) return;
+                    hasCompletedRef.current = true;
+                    setHighlight(wIdx); 
+                    busyRef.current = false;
+                    setIsAnimating(false);
+                }, 6550);
+                timersRef.current.push(timer4);
+            });
+        });
 
-        return () => { 
-            clearAllTimers(); 
-            busyRef.current = false; 
-        };
-    }, [hasSnapshot, finalWinner, items]);
+        // Safety timeout
+        const safetyTimer = setTimeout(() => {
+            if (busyRef.current && !hasCompletedRef.current) {
+                console.warn('Animation safety timeout triggered');
+                hasCompletedRef.current = true;
+                busyRef.current = false;
+                setIsAnimating(false);
+                setHighlight(wIdx);
+            }
+        }, 8000);
+        timersRef.current.push(safetyTimer);
+
+    }, [hasSnapshot, finalWinner, items, clearAllTimers]);
 
     if (items.length === 0) {
         return (
@@ -461,7 +568,7 @@ async function fetchKickAvatar(username) {
     }
 }
 
-// FIXED: Extract avatar from multiple possible locations in WebSocket data
+// Extract avatar from multiple possible locations in WebSocket data
 const extractAvatar = (userData) => {
     return userData.profilepic || 
            userData.profile_picture || 
@@ -625,7 +732,7 @@ export default function Picker() {
 
                             const text = messageData.content || messageData.message || '';
 
-                            // FIXED: Extract avatar with fallback chain
+                            // Extract avatar with fallback chain
                             const inlineAvatar = extractAvatar(userData);
                             
                             // Cache immediately if available
@@ -641,7 +748,7 @@ export default function Picker() {
                                 user: username,
                                 text,
                                 color:        userData.identity?.color || '#53fc18',
-                                avatar:       inlineAvatar || cachedAvatar, // FIXED: Use inline first
+                                avatar:       inlineAvatar || cachedAvatar,
                                 badges,
                                 timestamp:    Date.now(),
                                 isBot:        false,
@@ -652,7 +759,7 @@ export default function Picker() {
                             setMessages(prev => [...prev.slice(-199), newMsg]);
                             setTotalEntries(prev => prev + 1);
 
-                            // FIXED: Only fetch if no avatar found and not already fetching
+                            // Only fetch if no avatar found and not already fetching
                             if (!inlineAvatar && !avatarCache.has(username)) {
                                 fetchKickAvatar(username).then(url => {
                                     if (!url || !isActive) return;
@@ -725,9 +832,21 @@ export default function Picker() {
     const handlePickWinner = useCallback(() => {
         if (isPicking || participants.length === 0) return;
         
+        // Validate participants have required properties
+        const validParticipants = participants.filter(p => p && p.user);
+        if (validParticipants.length === 0) {
+            console.error('No valid participants');
+            return;
+        }
+        
         // Create eligible list from current participants
-        const eligible = Array.from(new Map(participants.map(p => [p.user, p])).values());
+        const eligible = Array.from(new Map(validParticipants.map(p => [p.user, p])).values());
         const chosen = eligible[Math.floor(Math.random() * eligible.length)];
+
+        if (!chosen || !chosen.user) {
+            console.error('Invalid winner selected');
+            return;
+        }
 
         // Pre-fetch avatar so wheel has it immediately
         if (!chosen.avatar) {
