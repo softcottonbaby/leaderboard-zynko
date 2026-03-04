@@ -2,283 +2,672 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Memoized icons
+// --- ICONS ---
 const KickIcon = memo(() => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
         <path d="M19.125 6.375H16.5L13.875 12L16.5 17.625H19.125L16.5 12L19.125 6.375ZM12.375 6.375H9.75L7.125 12L9.75 17.625H12.375L9.75 12L12.375 6.375ZM5.625 6.375H3L0.375 12L3 17.625H5.625L3 12L5.625 6.375Z" />
     </svg>
 ));
 KickIcon.displayName = 'KickIcon';
 
-const UserIcon = memo(({ className, color }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-        <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-));
-UserIcon.displayName = 'UserIcon';
-
-const TrophyIcon = memo(({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-        <path d="M4 22h16"></path>
-        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+const TrophyIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-black">
+        <path d="M5 3h14v2H5V3m0 16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-3H5v3m14-8h-2V7h-2v4H9V7H7v4H5v2h2v4h2v-4h6v4h2v-4h2v-2z"/>
     </svg>
 ));
 TrophyIcon.displayName = 'TrophyIcon';
 
-const ChatMessage = memo(({ msg }) => (
-    <motion.div 
-        layout
-        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="flex items-start gap-3 text-sm"
-    >
-        <UserIcon className="w-5 h-5 mt-0.5 flex-shrink-0" color={msg.color} />
-        <div className="min-w-0">
-            <span className="font-bold" style={{ color: msg.color }}>
-                {msg.user}
-            </span>
-            <span className="text-white/80 ml-2 break-all">{msg.text}</span>
-        </div>
-    </motion.div>
+const SettingsIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
 ));
+SettingsIcon.displayName = 'SettingsIcon';
+
+const UsersIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+));
+UsersIcon.displayName = 'UsersIcon';
+
+const CheckIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+        <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+));
+CheckIcon.displayName = 'CheckIcon';
+
+const HashIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
+        <line x1="4" y1="9" x2="20" y2="9"></line>
+        <line x1="4" y1="15" x2="20" y2="15"></line>
+        <line x1="10" y1="3" x2="8" y2="21"></line>
+        <line x1="16" y1="3" x2="14" y2="21"></line>
+    </svg>
+));
+HashIcon.displayName = 'HashIcon';
+
+const DiamondIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-pink-400">
+        <path d="M12 2L2 12l10 10L22 12 12 2z"/>
+    </svg>
+));
+DiamondIcon.displayName = 'DiamondIcon';
+
+const BanIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+    </svg>
+));
+BanIcon.displayName = 'BanIcon';
+
+const ClockIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+));
+ClockIcon.displayName = 'ClockIcon';
+
+const UnlockIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+    </svg>
+));
+UnlockIcon.displayName = 'UnlockIcon';
+
+const TestTubeIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400">
+        <path d="M14.5 2v17.5c0 1.7-1.3 3-3 3s-3-1.3-3-3V2"></path>
+        <path d="M8.5 2h7"></path>
+        <path d="M14.5 8h-5"></path>
+    </svg>
+));
+TestTubeIcon.displayName = 'TestTubeIcon';
+
+const TrashIcon = memo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 6h18"></path>
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+    </svg>
+));
+TrashIcon.displayName = 'TrashIcon';
+
+// --- ANIMATED BACKGROUND ---
+const AnimatedBackground = () => (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-red-950/30 to-black animate-pulse" style={{ animationDuration: '4s' }} />
+        <motion.div className="absolute w-[800px] h-[800px] rounded-full bg-gradient-to-r from-red-600/20 to-red-900/20 blur-[120px]" animate={{ x: [0, 100, 0], y: [0, -50, 0], scale: [1, 1.2, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} style={{ top: '-20%', left: '-10%' }} />
+        <motion.div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-red-800/20 to-black blur-[100px]" animate={{ x: [0, -100, 0], y: [0, 100, 0], scale: [1, 1.3, 1] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} style={{ bottom: '-10%', right: '-5%' }} />
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `linear-gradient(rgba(239,68,68,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(239,68,68,0.1)_1px,transparent_1px)`, backgroundSize: '50px 50px' }} />
+        <motion.div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-red-500/30 to-transparent" animate={{ top: ['0%', '100%'] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
+    </div>
+);
+
+// --- EMOTE PARSER ---
+const parseEmotes = (text) => {
+    if (!text) return [];
+    const parts = [];
+    const regex = /\[emote:(\d+):([^\]]+)\]/g;
+    let lastIndex = 0, match;
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+        parts.push({ type: 'emote', id: match[1], name: match[2], url: `https://files.kick.com/emotes/${match[1]}/fullsize` });
+        lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) parts.push({ type: 'text', content: text.slice(lastIndex) });
+    return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+};
+
+// --- KICK BADGE ICONS ---
+const KICK_BADGE_ICONS = {
+    broadcaster: (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#53fc18"/><path d="M8 2a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-5 0V4.5A2.5 2.5 0 0 1 8 2Z" fill="#000"/><path d="M4.5 7.5a3.5 3.5 0 0 0 7 0M8 11v2.5M6 13.5h4" stroke="#000" strokeWidth="1.2" strokeLinecap="round"/></svg>),
+    moderator:   (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#53fc18"/><path d="M10.5 2L14 5.5l-1.5 1.5-1-1L8 9.5 6.5 8l3.5-3.5-1-1L10.5 2Z" fill="#000"/><path d="M2 14l4-4 1.5 1.5-4 4L2 14Z" fill="#000"/></svg>),
+    subscriber:  (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#7c3aed"/><path d="M8 2.5l1.5 3 3.3.5-2.4 2.3.6 3.2L8 10l-3 1.5.6-3.2L3.2 6l3.3-.5L8 2.5Z" fill="#fff"/></svg>),
+    sub:         (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#7c3aed"/><path d="M8 2.5l1.5 3 3.3.5-2.4 2.3.6 3.2L8 10l-3 1.5.6-3.2L3.2 6l3.3-.5L8 2.5Z" fill="#fff"/></svg>),
+    vip:         (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#e4a014"/><path d="M8 3L3 7l5 6 5-6-5-4Z" fill="#fff"/></svg>),
+    og:          (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#1da1f2"/><text x="3" y="12" fontSize="8" fontWeight="bold" fill="#fff" fontFamily="monospace">OG</text></svg>),
+    founder:     (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#d946ef"/><text x="5.5" y="12" fontSize="10" fontWeight="bold" fill="#fff" fontFamily="monospace">1</text></svg>),
+    verified:    (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="8" fill="#aaa"/><path d="M4 8l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+    admin:       (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#ff4500"/><text x="3" y="12" fontSize="9" fontWeight="bold" fill="#fff" fontFamily="monospace">K</text></svg>),
+    bot:         (<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#06b6d4"/><rect x="3" y="5" width="10" height="7" rx="2" fill="#000" opacity=".5"/><rect x="5" y="7" width="2" height="2" rx="1" fill="#fff"/><rect x="9" y="7" width="2" height="2" rx="1" fill="#fff"/></svg>),
+};
+
+const KickBadge = memo(({ badge }) => {
+    if (!badge) return null;
+    const icon = KICK_BADGE_ICONS[badge.type];
+    if (icon) return <span title={badge.text || badge.type} className="inline-flex items-center align-middle">{icon}</span>;
+    return <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-bold uppercase leading-none bg-gray-600 text-white">{badge.text || badge.type}</span>;
+});
+KickBadge.displayName = 'KickBadge';
+
+// ── UserAvatar ────────────────────────────────────────────────────────────────
+// FIXED: Enhanced with better URL validation and referrer policy
+const UserAvatar = memo(({ src, alt, className }) => {
+    const [error, setError] = useState(false);
+    
+    useEffect(() => { 
+        setError(false); 
+    }, [src]);
+    
+    // FIXED: Better validation for avatar URLs
+    const isValidSrc = src && typeof src === 'string' && (
+        src.startsWith('http://') || 
+        src.startsWith('https://') ||
+        src.startsWith('data:image')
+    );
+    
+    if (error || !isValidSrc) {
+        return (
+            <div className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-sm font-bold text-white/50`}>
+                {alt?.charAt(0).toUpperCase() || '?'}
+            </div>
+        );
+    }
+    
+    return (
+        <img 
+            src={src} 
+            alt={alt} 
+            className={`${className} object-cover`} 
+            loading="lazy" 
+            onError={() => setError(true)}
+            referrerPolicy="no-referrer" // FIXED: Prevent referrer issues with Kick images
+        />
+    );
+});
+UserAvatar.displayName = 'UserAvatar';
+
+const Emote = memo(({ url, name }) => (
+    <img src={url} alt={name} className="inline-block w-5 h-5 align-middle mx-0.5" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />
+));
+Emote.displayName = 'Emote';
+
+const ChatMessage = memo(({ msg, isEntry }) => {
+    const contentParts = parseEmotes(msg.text);
+    return (
+        <motion.div layout initial={{ opacity: 0, x: -20, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }}
+            className={`flex items-start gap-2 text-sm py-1.5 px-2 rounded-lg ${isEntry ? 'bg-gradient-to-r from-red-500/20 to-transparent border-l-2 border-red-500' : 'hover:bg-white/5'}`}>
+            <UserAvatar src={msg.avatar} alt={msg.user} className="w-7 h-7 rounded-full flex-shrink-0 ring-2 ring-white/10" />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 flex-wrap">
+                    {isEntry && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-red-500 text-xs font-bold">+</motion.span>}
+                    <span className="font-bold text-sm" style={{ color: msg.color }}>{msg.user}</span>
+                    {msg.badges?.map((b, i) => <KickBadge key={i} badge={b} />)}
+                </div>
+                <div className="text-white/80 text-sm break-words">
+                    {contentParts.map((p, i) => p.type === 'emote' ? <Emote key={i} url={p.url} name={p.name} /> : <span key={i}>{p.content}</span>)}
+                </div>
+            </div>
+        </motion.div>
+    );
+});
 ChatMessage.displayName = 'ChatMessage';
 
-// KICK CHAT CONFIGURATION
-const KICK_CHANNEL = 'zynkogambles'; // Your Kick channel name
-const PUSHER_KEY = 'eb1d5f283081a78b974c';
-const PUSHER_CLUSTER = 'us1';
+// ── SlotMachineWheel ──────────────────────────────────────────────────────────
+const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete }) => {
+    const outerRef    = useRef(null);
+    const stripRef    = useRef(null);
+    const busyRef     = useRef(false);
+    const timersRef   = useRef([]);
+    const [items, setItems]           = useState([]);
+    const [highlightIdx, setHighlight] = useState(null);
+
+    const ITEM_W = 120, GAP = 14, STEP = 134, COPIES = 12;
+
+    const addTimer = (fn, ms) => { const id = setTimeout(fn, ms); timersRef.current.push(id); return id; };
+    const clearAllTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
+
+    useEffect(() => {
+        if (!candidates || candidates.length === 0) { setItems([]); return; }
+        const seen = new Set(), unique = [];
+        candidates.forEach(c => { if (!seen.has(c.user)) { seen.add(c.user); unique.push(c); } });
+        const built = [];
+        for (let copy = 0; copy < COPIES; copy++) unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}` }));
+        setItems(built);
+        setHighlight(null);
+    }, [candidates]);
+
+    // Sync winner avatar into strip items when it arrives
+    useEffect(() => {
+        if (!finalWinner?.avatar) return;
+        setItems(prev => prev.map(it => it.user === finalWinner.user ? { ...it, avatar: finalWinner.avatar } : it));
+    }, [finalWinner?.avatar, finalWinner?.user]);
+
+    useEffect(() => {
+        if (!isRolling || !finalWinner || items.length === 0) return;
+        if (!outerRef.current || !stripRef.current) return;
+        if (busyRef.current) return;
+        busyRef.current = true;
+        setHighlight(null);
+        clearAllTimers();
+
+        const strip = stripRef.current;
+        const outerW = outerRef.current.offsetWidth;
+        const seen = new Set();
+        items.forEach(it => seen.add(it.user));
+        const uniqueCount = seen.size;
+        const centerPx = outerW / 2 - STEP / 2;
+        const xForIdx = idx => centerPx - idx * STEP;
+
+        const winCopyStart = 7 * uniqueCount;
+        let wIdx = -1;
+        for (let i = winCopyStart; i < winCopyStart + uniqueCount; i++) {
+            if (items[i]?.user === finalWinner.user) { wIdx = i; break; }
+        }
+        if (wIdx === -1) wIdx = items.findIndex(it => it.user === finalWinner.user);
+        if (wIdx === -1) { busyRef.current = false; return; }
+
+        const overX = xForIdx(wIdx) - STEP * 0.72;
+        const startX = xForIdx(wIdx) + uniqueCount * STEP * 4;
+
+        strip.style.transition = 'none';
+        strip.style.transform = `translateX(${startX}px)`;
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            strip.style.transition = 'transform 1s cubic-bezier(0.55, 0, 1, 0.45)';
+            strip.style.transform = `translateX(${xForIdx(wIdx) + uniqueCount * STEP * 3}px)`;
+            addTimer(() => { strip.style.transition = 'transform 2.8s linear'; strip.style.transform = `translateX(${xForIdx(wIdx) + STEP * 0.72 + STEP}px)`; }, 950);
+            addTimer(() => { strip.style.transition = 'transform 1.8s cubic-bezier(0.12, 0, 0.05, 1)'; strip.style.transform = `translateX(${overX}px)`; }, 3750);
+            addTimer(() => { strip.style.transition = 'transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)'; strip.style.transform = `translateX(${xForIdx(wIdx)}px)`; }, 5600);
+            addTimer(() => { setHighlight(wIdx); busyRef.current = false; onComplete?.(); }, 6550);
+        }));
+
+        return () => { clearAllTimers(); busyRef.current = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isRolling, finalWinner, items]);
+
+    if (items.length === 0) return <div className="w-full h-[168px] flex items-center justify-center text-white/20 text-sm">No entries yet</div>;
+
+    return (
+        <div ref={outerRef} className="relative w-full overflow-hidden select-none" style={{ height: 168 }}>
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none" style={{ width: ITEM_W }}>
+                <div className="absolute inset-0 rounded-xl ring-2 ring-red-500/60 bg-red-500/5" />
+            </div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderTop: '15px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderBottom: '15px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
+            <div ref={stripRef} className="absolute top-0 bottom-0 flex items-center" style={{ gap: GAP, willChange: 'transform' }}>
+                {items.map((item, idx) => {
+                    const isWinner = highlightIdx === idx;
+                    return (
+                        <div key={item._key} style={{ width: ITEM_W, flexShrink: 0, height: 148 }}
+                            className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl transition-all duration-300 ${isWinner ? 'bg-red-500/40 ring-2 ring-red-400 scale-105 shadow-[0_0_32px_rgba(239,68,68,0.8)]' : 'bg-white/5 opacity-60'}`}>
+                            <div className="relative flex-shrink-0" style={{ width: 80, height: 80 }}>
+                                <div className="w-full h-full rounded-full overflow-hidden ring-2 ring-white/20">
+                                    <UserAvatar src={item.avatar} alt={item.user} className="w-full h-full" />
+                                </div>
+                            </div>
+                            <span className={`text-[11px] font-bold truncate w-full text-center leading-tight px-1 ${isWinner ? 'text-white' : 'text-white/60'}`}>{item.user}</span>
+                        </div>
+                    );
+                })}
+            </div>
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
+        </div>
+    );
+});
+SlotMachineWheel.displayName = 'SlotMachineWheel';
+
+// --- BOT GENERATOR ---
+const BOT_NAMES = ['xXSlayerXx','ProGamer2024','NightOwl','ShadowHunter','CyberNinja','DragonFire','StealthMode','PixelWarrior','CodeBreaker','NeonRider','ThunderBolt','GhostFace','RapidFire','SilentKill','ToxicPlayer','EliteSniper','FastFingers','DarkSoul','IceCold','FireStorm'];
+const COLORS    = ['#FF0000','#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','#FFA500','#800080'];
+
+const generateBot = (id) => {
+    const name = BOT_NAMES[id % BOT_NAMES.length] + Math.floor(Math.random() * 999);
+    return { id: `bot-${id}-${Date.now()}`, user: name, text: '', color: COLORS[Math.floor(Math.random() * COLORS.length)], avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`, badges: [{ type: 'bot', text: 'BOT' }], timestamp: Date.now(), isBot: true, isSubscriber: Math.random() > 0.7, isModerator: false };
+};
+
+const KICK_CHANNEL   = 'zynkogambles';
+const PUSHER_KEY     = '32cbd69e4b950bf97679';
+const PUSHER_CLUSTER = 'us2';
+
+// ── Avatar cache (module-level, survives re-renders) ─────────────────────────
+const avatarCache = new Map();
+
+// ── fetchKickAvatar ───────────────────────────────────────────────────────────
+// FIXED: Better error handling and URL validation
+async function fetchKickAvatar(username) {
+    if (!username) return null;
+    if (avatarCache.has(username)) return avatarCache.get(username);
+    
+    try {
+        const res = await fetch(`/api/kick/channel?username=${encodeURIComponent(username)}`);
+        if (!res.ok) throw new Error('proxy error');
+        const data = await res.json();
+        
+        // FIXED: Validate URL before caching
+        const url = data.avatar && typeof data.avatar === 'string' && data.avatar.startsWith('http') 
+            ? data.avatar 
+            : null;
+            
+        avatarCache.set(username, url);
+        return url;
+    } catch (err) {
+        console.error(`Failed to fetch avatar for ${username}:`, err);
+        avatarCache.set(username, null);
+        return null;
+    }
+}
+
+// FIXED: Extract avatar from multiple possible locations in WebSocket data
+const extractAvatar = (userData) => {
+    return userData.profilepic || 
+           userData.profile_picture || 
+           userData.profile_image ||
+           userData.avatar ||
+           userData.identity?.avatar ||
+           null;
+};
 
 export default function Picker() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [passwordInput, setPasswordInput] = useState('');
-    const [error, setError] = useState('');
+    const [passwordInput, setPasswordInput]     = useState('');
+    const [error, setError]                     = useState('');
     const correctPassword = process.env.NEXT_PUBLIC_PICKER_PASSWORD || 'zynkoace';
 
-    const [messages, setMessages] = useState([]);
-    const [winner, setWinner] = useState(null);
-    const [isPicking, setIsPicking] = useState(false);
+    const [messages, setMessages]               = useState([]);
+    const [winner, setWinner]                   = useState(null);
+    const [isPicking, setIsPicking]             = useState(false);
     const [connectionStatus, setConnectionStatus] = useState('Disconnected');
-    const [pickerKeyword, setPickerKeyword] = useState('!play');
-    const [participantCount, setParticipantCount] = useState(0);
-    const [debugInfo, setDebugInfo] = useState('');
+    const [pickerKeyword, setPickerKeyword]     = useState('zynko');
+    const [participants, setParticipants]       = useState([]);
+    const [channelInfo, setChannelInfo]         = useState(null);
 
-    const chatEndRef = useRef(null);
-    const wsRef = useRef(null);
-    const messagesRef = useRef([]);
+    const [subLuck, setSubLuck]                         = useState(false);
+    const [subLuckMultiplier, setSubLuckMultiplier]     = useState(2);
+    const [excludeModerators, setExcludeModerators]     = useState(false);
+    const [excludeBots, setExcludeBots]                 = useState(false);
+    const [allowReEntry, setAllowReEntry]               = useState(false);
+    const [autoPick, setAutoPick]                       = useState(false);
+    const [autoPickDelay, setAutoPickDelay]             = useState(30);
+
+    const [bannedCount, setBannedCount]   = useState(0);
+    const [timeoutCount, setTimeoutCount] = useState(0);
+    const [unbanCount, setUnbanCount]     = useState(0);
+    const [isLive, setIsLive]             = useState(false);
+    const [viewerCount, setViewerCount]   = useState(0);
+    const [totalEntries, setTotalEntries] = useState(0);
+    const [rollCount, setRollCount]       = useState(0);
+    const [isTestMode, setIsTestMode]     = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+
+    const chatContainerRef = useRef(null);
+    const wsRef            = useRef(null);
     const reconnectTimeout = useRef(null);
+    const pingInterval     = useRef(null);
+    const passwordInputRef = useRef(null);
+    const autoPickTimerRef = useRef(null);
 
-    useEffect(() => { messagesRef.current = messages; }, [messages]);
-
-    // Working Kick WebSocket connection
     useEffect(() => {
-        if (!isAuthenticated) return;
+        if (chatContainerRef.current)
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }, [messages]);
 
-        let isActive = true;
-        setConnectionStatus('Connecting...');
-        setDebugInfo('Initializing connection...');
-
-        const connectToKick = async () => {
-            try {
-                // Step 1: Get chatroom ID from Kick's API
-                setDebugInfo('Fetching chatroom ID...');
-                const response = await fetch(`https://kick.com/api/v2/channels/${KICK_CHANNEL}`);
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch channel: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const chatroomId = data.chatroom?.id;
-
-                if (!chatroomId) {
-                    throw new Error('No chatroom ID found in response');
-                }
-
-                setDebugInfo(`Got chatroom ID: ${chatroomId}`);
-                console.log('✅ Chatroom ID:', chatroomId);
-
-                // Step 2: Connect to Pusher
-                setDebugInfo('Connecting to Pusher...');
-
-                // Dynamic import Pusher to avoid SSR issues
-                const Pusher = (await import('pusher-js')).default;
-
-                const pusher = new Pusher(PUSHER_KEY, {
-                    cluster: PUSHER_CLUSTER,
-                    forceTLS: true,
-                });
-
-                wsRef.current = pusher;
-
-                pusher.connection.bind('connected', () => {
-                    if (!isActive) return;
-                    setConnectionStatus('Connected');
-                    setDebugInfo('Connected to chat!');
-                    console.log('✅ Pusher connected');
-                });
-
-                pusher.connection.bind('disconnected', () => {
-                    if (!isActive) return;
-                    setConnectionStatus('Disconnected');
-                    setDebugInfo('Disconnected');
-                });
-
-                pusher.connection.bind('error', (err) => {
-                    console.error('Pusher error:', err);
-                    if (!isActive) return;
-                    setConnectionStatus('Error');
-                    setDebugInfo(`Connection error: ${err.message || 'Unknown'}`);
-                });
-
-                // Subscribe to chat channel
-                const channel = pusher.subscribe(`chatrooms.${chatroomId}.v2`);
-
-                channel.bind('pusher:subscription_succeeded', () => {
-                    console.log('✅ Subscribed to chat channel');
-                    setDebugInfo('Subscribed to chat!');
-                });
-
-                channel.bind('pusher:subscription_error', (error) => {
-                    console.error('Subscription error:', error);
-                    setDebugInfo(`Subscription failed: ${error}`);
-                });
-
-                // Listen for messages
-                channel.bind('App\Events\ChatMessageEvent', (data) => {
-                    if (!isActive) return;
-
-                    try {
-                        const messageData = typeof data === 'string' ? JSON.parse(data) : data;
-
-                        const newMsg = {
-                            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                            user: messageData.sender?.username || 'Unknown',
-                            text: messageData.content || '',
-                            color: messageData.sender?.identity?.color || '#00FF00',
-                            timestamp: Date.now()
-                        };
-
-                        setMessages(prev => {
-                            // Prevent duplicates
-                            const recent = prev.slice(-3);
-                            if (recent.some(m => m.user === newMsg.user && m.text === newMsg.text)) {
-                                return prev;
-                            }
-                            return [...prev.slice(-199), newMsg];
-                        });
-                    } catch (e) {
-                        console.error('Failed to process message:', e);
-                    }
-                });
-
-                // Alternative event name (Kick might use different format)
-                channel.bind('chat-message', (data) => {
-                    if (!isActive) return;
-                    console.log('Received chat-message:', data);
-                });
-
-            } catch (err) {
-                console.error('Connection failed:', err);
-                if (!isActive) return;
-                setConnectionStatus('Failed');
-                setDebugInfo(`Error: ${err.message}`);
-
-                // Auto-retry after 5 seconds
-                reconnectTimeout.current = setTimeout(() => {
-                    if (isActive) connectToKick();
-                }, 5000);
-            }
-        };
-
-        connectToKick();
-
-        return () => {
-            isActive = false;
-            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-            if (wsRef.current) {
-                wsRef.current.disconnect();
-                wsRef.current = null;
-            }
-        };
+    useEffect(() => {
+        if (!isAuthenticated && passwordInputRef.current) passwordInputRef.current.focus();
     }, [isAuthenticated]);
 
-    // Update participant count
+    useEffect(() => {
+        if (autoPick && participants.length > 0 && !isPicking && !winner)
+            autoPickTimerRef.current = setTimeout(handlePickWinner, autoPickDelay * 1000);
+        return () => clearTimeout(autoPickTimerRef.current);
+    }, [autoPick, participants.length, isPicking, winner, autoPickDelay]);
+
+    // ── WebSocket connection ─────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isAuthenticated || isTestMode) return;
+        let isActive = true, ws = null;
+
+        const connect = async () => {
+            try {
+                // ── Get channel info: proxy first, direct as fallback ─────────
+                let channelData = { avatar: null, username: KICK_CHANNEL, viewerCount: 0, isLive: false, chatroomId: null };
+                try {
+                    const proxyRes = await fetch(`/api/kick/channel?username=${KICK_CHANNEL}`);
+                    if (proxyRes.ok) {
+                        const d = await proxyRes.json();
+                        if (!d.error) channelData = d;
+                    }
+                } catch (proxyErr) {
+                    console.warn('Proxy unavailable:', proxyErr.message);
+                }
+
+                // If still no chatroomId, try direct (works in some environments)
+                let chatroomId = channelData.chatroomId;
+                if (!chatroomId) {
+                    try {
+                        const directRes = await fetch(`https://kick.com/api/v2/channels/${KICK_CHANNEL}`, {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'omit',
+                        });
+                        if (directRes.ok) {
+                            const d = await directRes.json();
+                            chatroomId = d.chatroom?.id || null;
+                            if (!channelData.avatar) {
+                                channelData.avatar = d.user?.profilepic || d.user?.profile_picture || d.user?.avatar || null;
+                                channelData.username = d.user?.username || KICK_CHANNEL;
+                                channelData.viewerCount = d.livestream?.viewer_count || 0;
+                                channelData.isLive = !!d.livestream;
+                            }
+                        }
+                    } catch (directErr) {
+                        console.warn('Direct fetch also failed:', directErr.message);
+                    }
+                }
+
+                if (!chatroomId) throw new Error('Cannot reach Kick API — check network');
+
+                setChannelInfo(channelData);
+                setViewerCount(channelData.viewerCount || 0);
+                setIsLive(channelData.isLive || false);
+
+                // Cache channel owner avatar
+                if (channelData.avatar) avatarCache.set(KICK_CHANNEL, channelData.avatar);
+
+                ws = new WebSocket(`wss://ws-${PUSHER_CLUSTER}.pusher.com:443/app/${PUSHER_KEY}?protocol=7&client=js&version=8.4.0&flash=false`);
+                wsRef.current = ws;
+
+                ws.onmessage = async (event) => {
+                    if (!isActive) return;
+                    try {
+                        const msg       = JSON.parse(event.data);
+                        const eventName = msg.event;
+                        const eventData = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
+
+                        if (eventName === 'pusher:connection_established') {
+                            ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { auth: '', channel: `chatrooms.${chatroomId}.v2` } }));
+                        }
+                        if (eventName === 'pusher_internal:subscription_succeeded') {
+                            setConnectionStatus('Connected');
+                            pingInterval.current = setInterval(() => {
+                                if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ event: 'pusher:ping', data: {} }));
+                            }, 60000);
+                        }
+                        if (eventName === 'pusher:ping') {
+                            ws.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
+                        }
+
+                        if (
+                            eventName === 'App\\Events\\ChatMessageSentEvent' ||
+                            eventName === 'App\\Events\\ChatMessageEvent'
+                        ) {
+                            const messageData = eventData.message || eventData;
+                            const userData    = eventData.sender  || eventData.user;
+                            if (!userData) return;
+
+                            const username = userData.username || userData.slug || 'Unknown';
+
+                            // Badges
+                            const badges = [];
+                            (userData.identity?.badges || []).forEach(b => {
+                                const t = (b.type || '').toLowerCase();
+                                if (t) badges.push({ type: t, text: b.text || t, count: b.count || null });
+                            });
+                            (userData.follower_badges || []).forEach(b => {
+                                const t = b.toLowerCase();
+                                if (!badges.some(x => x.type === t)) badges.push({ type: t, text: b, count: null });
+                            });
+                            if (username === KICK_CHANNEL && !badges.some(x => x.type === 'broadcaster'))
+                                badges.unshift({ type: 'broadcaster', text: 'Broadcaster', count: null });
+                            if (userData.isSuperAdmin) badges.push({ type: 'admin', text: 'Staff', count: null });
+
+                            const text = messageData.content || messageData.message || '';
+
+                            // FIXED: Extract avatar with fallback chain
+                            const inlineAvatar = extractAvatar(userData);
+                            
+                            // Cache immediately if available
+                            if (inlineAvatar && !avatarCache.has(username)) {
+                                avatarCache.set(username, inlineAvatar);
+                            }
+
+                            const msgId        = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                            const cachedAvatar = avatarCache.get(username) || null;
+
+                            const newMsg = {
+                                id: msgId,
+                                user: username,
+                                text,
+                                color:        userData.identity?.color || '#53fc18',
+                                avatar:       inlineAvatar || cachedAvatar, // FIXED: Use inline first
+                                badges,
+                                timestamp:    Date.now(),
+                                isBot:        false,
+                                isSubscriber: userData.is_subscribed || badges.some(b => b.type === 'subscriber' || b.type === 'sub'),
+                                isModerator:  badges.some(b => b.type === 'moderator'),
+                            };
+
+                            setMessages(prev => [...prev.slice(-199), newMsg]);
+                            setTotalEntries(prev => prev + 1);
+
+                            // FIXED: Only fetch if no avatar found and not already fetching
+                            if (!inlineAvatar && !avatarCache.has(username)) {
+                                fetchKickAvatar(username).then(url => {
+                                    if (!url || !isActive) return;
+                                    setMessages(prev => prev.map(m => 
+                                        m.user === username && !m.avatar ? { ...m, avatar: url } : m
+                                    ));
+                                });
+                            }
+                        }
+                    } catch (e) { console.error('WS message error:', e); }
+                };
+
+                ws.onclose = () => {
+                    if (!isActive) return;
+                    setConnectionStatus('Disconnected');
+                    clearInterval(pingInterval.current);
+                    reconnectTimeout.current = setTimeout(() => isActive && connect(), 3000);
+                };
+                ws.onerror = err => console.error('WS error:', err);
+
+            } catch (err) {
+                console.error('Connect error:', err);
+                if (!isActive) return;
+                setConnectionStatus('Failed');
+                reconnectTimeout.current = setTimeout(() => isActive && connect(), 5000);
+            }
+        };
+
+        connect();
+        return () => {
+            isActive = false;
+            clearInterval(pingInterval.current);
+            clearTimeout(reconnectTimeout.current);
+            ws?.close();
+        };
+    }, [isAuthenticated, isTestMode]);
+
+    // ── Participants (derived) ───────────────────────────────────────────────
     useEffect(() => {
         const keyword = pickerKeyword.trim().toLowerCase();
-        if (!keyword) {
-            setParticipantCount(0);
-            return;
-        }
-
-        const uniqueUsers = new Set(
-            messages
-                .filter(msg => msg.text.trim().toLowerCase() === keyword)
-                .map(msg => msg.user)
-        );
-        setParticipantCount(uniqueUsers.size);
-    }, [messages, pickerKeyword]);
-
-    // Auto-scroll
-    useEffect(() => {
-        if (!isAuthenticated || messages.length === 0) return;
-        requestAnimationFrame(() => {
-            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (!keyword) { setParticipants([]); return; }
+        const unique = new Map();
+        messages.forEach(msg => {
+            if (!msg.text || msg.text.trim().toLowerCase() !== keyword) return;
+            if (excludeBots && msg.isBot) return;
+            if (excludeModerators && msg.isModerator) return;
+            if (!allowReEntry && unique.has(msg.user)) return;
+            const weight = subLuck && msg.isSubscriber ? subLuckMultiplier : 1;
+            if (!unique.has(msg.user)) {
+                unique.set(msg.user, { ...msg, weight, entries: 1 });
+            } else if (allowReEntry) {
+                const ex = unique.get(msg.user);
+                ex.entries++;
+                ex.weight += weight;
+            }
         });
-    }, [messages.length, isAuthenticated]);
+        const weighted = [];
+        unique.forEach(p => { for (let i = 0; i < p.weight; i++) weighted.push({ ...p, id: `${p.id}-${i}` }); });
+        setParticipants(weighted);
+    }, [messages, pickerKeyword, subLuck, subLuckMultiplier, excludeBots, excludeModerators, allowReEntry]);
+
+    // Propagate updated avatar to winner when message is patched
+    useEffect(() => {
+        if (!winner) return;
+        const updated = messages.find(m => m.user === winner.user && m.avatar);
+        if (updated?.avatar && updated.avatar !== winner.avatar)
+            setWinner(prev => prev ? { ...prev, avatar: updated.avatar } : prev);
+    }, [messages, winner]);
 
     const handlePickWinner = useCallback(() => {
-        if (isPicking) return;
+        if (isPicking || participants.length === 0) return;
+        const eligible = Array.from(new Map(participants.map(p => [p.user, p])).values());
+        const chosen   = eligible[Math.floor(Math.random() * eligible.length)];
 
-        const keyword = pickerKeyword.trim().toLowerCase();
-        if (!keyword) {
-            setWinner({ user: 'Please set a keyword!', color: '#ff4d4d' });
-            return;
+        // Pre-fetch avatar so wheel has it immediately
+        if (!chosen.avatar) {
+            fetchKickAvatar(chosen.user).then(url => {
+                if (!url) return;
+                setWinner(prev => prev?.user === chosen.user ? { ...prev, avatar: url } : prev);
+                setMessages(prev => prev.map(m => m.user === chosen.user && !m.avatar ? { ...m, avatar: url } : m));
+            });
         }
 
-        const candidates = messagesRef.current
-            .filter(msg => msg.text.trim().toLowerCase() === keyword)
-            .map(msg => ({ user: msg.user, color: msg.color }));
-
-        const uniqueCandidates = Array.from(new Map(candidates.map(c => [c.user, c])).values());
-
-        if (uniqueCandidates.length === 0) {
-            setWinner({ user: `No users typed "${keyword}"`, color: '#ff4d4d' });
-            return;
-        }
-
+        setWinner(chosen);
         setIsPicking(true);
+        setRollCount(prev => prev + 1);
+    }, [isPicking, participants]);
+
+    const handleRollComplete = useCallback(() => setIsPicking(false), []);
+
+    const addTestBots = useCallback(() => {
+        setIsTestMode(true);
+        for (let i = 0; i < 20; i++) {
+            const bot = generateBot(i);
+            bot.text  = pickerKeyword;
+            setTimeout(() => {
+                setMessages(prev => [...prev.slice(-199), bot]);
+                setTotalEntries(prev => prev + 1);
+            }, i * 100);
+        }
+    }, [pickerKeyword]);
+
+    const clearAll = useCallback(() => {
+        setMessages([]);
+        setParticipants([]);
         setWinner(null);
-
-        let picks = 0;
-        const maxPicks = 25;
-        const intervalId = setInterval(() => {
-            picks++;
-            const randomCandidate = uniqueCandidates[Math.floor(Math.random() * uniqueCandidates.length)];
-            setWinner(randomCandidate);
-
-            if (picks >= maxPicks) {
-                clearInterval(intervalId);
-                setIsPicking(false);
-            }
-        }, 80);
-    }, [isPicking, pickerKeyword]);
+        setTotalEntries(0);
+        setRollCount(0);
+        setBannedCount(0);
+        setTimeoutCount(0);
+        setUnbanCount(0);
+        avatarCache.clear();
+    }, []);
 
     const handleLogin = useCallback((e) => {
         e.preventDefault();
-        if (passwordInput === correctPassword) {
-            setIsAuthenticated(true);
-            setError('');
-        } else {
-            setError('Incorrect Password. Try again.');
-            setPasswordInput('');
-        }
+        if (passwordInput === correctPassword) { setIsAuthenticated(true); setError(''); }
+        else { setError('Incorrect Password'); setPasswordInput(''); passwordInputRef.current?.focus(); }
     }, [passwordInput, correctPassword]);
 
     const AppNavbar = () => (
@@ -286,16 +675,11 @@ export default function Picker() {
             <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 md:px-10 py-5">
                 <img src="/logonavbar/zincoZ.webp" alt="Z Logo" className="h-8 md:h-10 select-none pointer-events-none" loading="eager" />
                 <div className="space-x-8 text-sm font-bold tracking-wide flex items-center">
-                    {[
-                        { href: '/', label: 'Home' },
-                        { href: '/leaderboard', label: 'Leaderboards' },
-                        { href: '/bonuses', label: 'Bonuses' },
-                        { href: '/picker', label: 'Picker' },
-                    ].map((item) => (
+                    {[{ href: '/', label: 'Home' }, { href: '/leaderboard', label: 'Leaderboards' }, { href: '/bonuses', label: 'Bonuses' }, { href: '/picker', label: 'Picker', active: true }].map((item) => (
                         <Link key={item.href} href={item.href} className="relative group">
-                            <span className={`${item.href === '/picker' ? 'text-red-400' : 'text-white'} hover:text-red-400 transition-colors`}>
+                            <span className={`${item.active ? 'text-red-400' : 'text-white'} hover:text-red-400 transition-colors`}>
                                 {item.label}
-                                <span className={`absolute left-0 -bottom-1 h-[2px] ${item.href === '/picker' ? 'w-full' : 'w-0'} bg-red-500 transition-all duration-300 group-hover:w-full`}></span>
+                                <span className={`absolute left-0 -bottom-1 h-[2px] ${item.active ? 'w-full' : 'w-0'} bg-red-500 transition-all duration-300 group-hover:w-full`}></span>
                             </span>
                         </Link>
                     ))}
@@ -304,228 +688,269 @@ export default function Picker() {
         </nav>
     );
 
-    const AppFooter = ({ className = "" }) => (
-        <footer className={`w-full bg-[#140000] border-t border-red-800 pt-8 pb-6 z-10 relative ${className}`}>
+    const AppFooter = () => (
+        <footer className="w-full bg-[#140000] border-t border-red-800 pt-8 pb-6 z-10 relative">
             <div className="max-w-screen-xl mx-auto flex flex-col items-center justify-center text-center px-4">
                 <div className="flex gap-6 mb-4">
-                    <a href="https://www.youtube.com/@zynko333/featured" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center">
-                        <img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5 select-none pointer-events-none" loading="lazy" />
-                    </a>
-                    <a href="https://kick.com/zynkogambles" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center">
-                        <img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert select-none pointer-events-none" loading="lazy" />
-                    </a>
-                    <a href="https://discord.gg/zynko" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center">
-                        <img src="/icons/discord.webp" alt="Discord" className="w-5 h-5 select-none pointer-events-none" loading="lazy" />
-                    </a>
+                    <a href="https://www.youtube.com/@zynko333/featured" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"><img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5 select-none pointer-events-none" loading="lazy" /></a>
+                    <a href="https://kick.com/zynkogambles" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"><img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert select-none pointer-events-none" loading="lazy" /></a>
+                    <a href="https://discord.gg/zynko" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-red-600 shadow-[0_0_12px_rgba(255,80,80,0.4)] hover:shadow-[0_0_18px_rgba(255,80,80,0.6)] hover:scale-110 transition-transform duration-200 flex items-center justify-center"><img src="/icons/discord.webp" alt="Discord" className="w-5 h-5 select-none pointer-events-none" loading="lazy" /></a>
                 </div>
                 <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
-                <p className="text-white/50 text-xs mt-1">
-                    Made by{' '}
-                    <a href="https://x.com/AceSnapGFX" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-400">
-                        acesnap
-                    </a>
-                </p>
             </div>
         </footer>
     );
 
     if (!isAuthenticated) {
         return (
-            <div className="flex flex-col min-h-screen bg-[#0a0000] overflow-x-hidden relative select-none items-center justify-center"
-                style={{
-                    backgroundImage: `
-                        linear-gradient(to right, rgba(255, 80, 80, 0.1) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(255, 80, 80, 0.1) 1px, transparent 1px)
-                    `,
-                    backgroundSize: "35px 35px",
-                }}
-            >
-                <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-red-900/20 to-transparent pointer-events-none z-0" />
-                <AppNavbar />
-
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-sm p-8 bg-black/70 backdrop-blur-sm border border-red-800/50 rounded-2xl z-10 text-white"
-                >
-                    <h2 className="text-3xl font-extrabold mb-6 text-center text-white">
-                        Enter Password
-                    </h2>
-                    <form onSubmit={handleLogin}>
-                        <input
-                            type="password"
-                            value={passwordInput}
-                            onChange={(e) => setPasswordInput(e.target.value)}
-                            className="w-full mt-2 mb-4 px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white text-center font-semibold tracking-wider focus:outline-none focus:border-red-500 transition-colors"
-                            placeholder="••••••••"
-                            autoComplete="off"
-                        />
-                        <button
-                            type="submit"
-                            className="w-full px-8 py-3 text-white font-semibold text-base rounded-xl bg-red-600 border border-red-700 shadow-[0_0_8px_rgba(255,80,80,0.4)] hover:shadow-[0_0_14px_4px_rgba(255,80,80,0.3)] hover:scale-105 active:scale-95 transition duration-200 tracking-wide"
-                        >
-                            Login
-                        </button>
-                        {error && (
-                            <motion.p 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="text-red-400 text-sm mt-4 text-center"
-                            >
-                                {error}
-                            </motion.p>
-                        )}
-                    </form>
-                </motion.div>
-
-                <AppFooter className="fixed bottom-0" />
+            <div className="flex flex-col min-h-screen bg-[#0a0000] overflow-hidden relative select-none">
+                <AnimatedBackground /><AppNavbar />
+                <div className="flex-1 flex items-center justify-center px-4">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm p-8 bg-black/80 backdrop-blur-md border border-red-800/50 rounded-2xl z-10 text-white shadow-2xl">
+                        <h2 className="text-3xl font-extrabold mb-6 text-center bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">Enter Password</h2>
+                        <form onSubmit={handleLogin}>
+                            <input ref={passwordInputRef} type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className="w-full mt-2 mb-4 px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white text-center font-semibold tracking-wider focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all" placeholder="••••••••" autoComplete="off" autoFocus />
+                            <button type="submit" className="w-full px-8 py-3 text-white font-semibold text-base rounded-xl bg-gradient-to-r from-red-600 to-red-700 border border-red-700 shadow-[0_0_8px_rgba(255,80,80,0.4)] hover:shadow-[0_0_14px_4px_rgba(255,80,80,0.3)] hover:scale-105 active:scale-95 transition duration-200 tracking-wide">Login</button>
+                            {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-400 text-sm mt-4 text-center">{error}</motion.p>}
+                        </form>
+                    </motion.div>
+                </div>
+                <AppFooter />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#0a0000] overflow-x-hidden relative select-none"
-            style={{
-                backgroundImage: `
-                    linear-gradient(to right, rgba(255, 80, 80, 0.1) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 80, 80, 0.1) 1px, transparent 1px)
-                `,
-                backgroundSize: "35px 35px",
-            }}
-        >
-            <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-red-900/20 to-transparent pointer-events-none z-0" />
+        <div className="flex flex-col min-h-screen bg-[#0a0a0a] overflow-hidden relative select-none">
+            <style jsx global>{`
+                * { scrollbar-width: thin; scrollbar-color: rgba(239,68,68,0.5) rgba(0,0,0,0.3); }
+                ::-webkit-scrollbar { width: 8px; height: 8px; }
+                ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+                ::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.5); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
+                ::-webkit-scrollbar-thumb:hover { background: rgba(239,68,68,0.7); }
+            `}</style>
+            <AnimatedBackground /><AppNavbar />
 
-            <main className="flex-grow w-screen max-w-screen flex flex-col items-center text-center px-4 pt-32 relative z-10 pb-24">
-                <AppNavbar />
+            <main className="flex-grow w-full max-w-7xl mx-auto px-4 pt-24 pb-4 relative z-10 h-screen">
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center gap-2 mb-4 text-xs">
+                    <span className="text-white/40">Raffle System Powered by</span>
+                    <span className="text-red-500 font-bold flex items-center gap-1"><KickIcon /> ZynkoPicker</span>
+                    <span className="text-white/40">|</span>
+                    <span className="flex items-center gap-1 text-white/60"><CheckIcon /> Provably Fair Results.</span>
+                    {isTestMode && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded text-[10px] font-bold border border-cyan-500/30">TEST MODE</motion.span>}
+                </motion.div>
 
-                <section className="w-full max-w-5xl px-4 text-white mt-6">
-                    <h2 className="text-5xl md:text-6xl font-extrabold mb-1 text-white">
-                        CHAT PICKER
-                    </h2>
-                    <p className="uppercase text-xs tracking-wide text-white/70 mb-12">
-                        Pick a random winner from Kick chat
-                    </p>
-
-                    {/* Debug Info */}
-                    {debugInfo && (
-                        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-600/50 rounded-lg text-blue-200 text-xs font-mono">
-                            {debugInfo}
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Chat Column */}
-                        <div className="md:col-span-2 bg-black/70 backdrop-blur-sm border border-red-800/50 rounded-2xl p-6 flex flex-col h-[600px]">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl font-bold text-left">Live Chat</h3>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs text-white/50">
-                                        {participantCount} participants
-                                    </span>
-                                    <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold
-                                        ${connectionStatus === 'Connected' ? 'bg-green-500/20 text-green-400' : ''}
-                                        ${connectionStatus === 'Connecting...' ? 'bg-yellow-500/20 text-yellow-400' : ''}
-                                        ${connectionStatus === 'Disconnected' || connectionStatus === 'Failed' ? 'bg-red-500/20 text-red-400' : ''}
-                                    `}>
-                                        <span className={`w-2 h-2 rounded-full
-                                            ${connectionStatus === 'Connected' ? 'bg-green-400 animate-pulse' : ''}
-                                            ${connectionStatus === 'Connecting...' ? 'bg-yellow-400 animate-pulse' : ''}
-                                            ${connectionStatus === 'Disconnected' || connectionStatus === 'Failed' ? 'bg-red-400' : ''}
-                                        `}></span>
-                                        {connectionStatus}
-                                    </span>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-140px)]">
+                    {/* LEFT */}
+                    <div className="lg:col-span-4 flex flex-col gap-3 h-full overflow-hidden">
+                        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-red-500/30 p-4 flex-shrink-0">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} className="w-2 h-2 rounded-full bg-red-500" />
+                                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Connection Setup</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <KickIcon />
+                                    <button onClick={() => setShowSettings(!showSettings)} className="hover:text-white text-white/60 transition-colors"><SettingsIcon /></button>
                                 </div>
                             </div>
-                            <div className="flex-grow overflow-y-auto pr-2 space-y-3 text-left scrollbar-thin scrollbar-thumb-red-900 scrollbar-track-transparent"
-                                style={{
-                                    maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)',
-                                }}
-                            >
-                                <AnimatePresence initial={false}>
-                                    {messages.map((msg) => (
-                                        <ChatMessage key={msg.id} msg={msg} />
-                                    ))}
-                                </AnimatePresence>
-                                {messages.length === 0 && (
-                                    <div className="text-white/30 text-center py-10">
-                                        {connectionStatus === 'Connected' 
-                                            ? 'Waiting for messages...' 
-                                            : 'Connecting to chat...'}
+                            <div className="bg-black/40 rounded-lg p-3 flex items-center gap-3">
+                                <div className="relative">
+                                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute -inset-1 bg-gradient-to-r from-red-600 to-red-400 rounded-full opacity-50 blur-sm" />
+                                    <UserAvatar src={channelInfo?.avatar} alt={KICK_CHANNEL} className="w-12 h-12 rounded-full ring-2 ring-red-500 relative z-10" />
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-bold text-white z-20">K</div>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-white">{channelInfo?.username || KICK_CHANNEL}</span>
+                                        {isLive && <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded">LIVE</span>}
                                     </div>
-                                )}
-                                <div ref={chatEndRef} />
+                                    <div className="flex items-center gap-2 text-[10px] text-white/50">
+                                        <UsersIcon /><span>{viewerCount} VIEWERS</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-3">
-                                <KickIcon />
-                                <span className="text-sm text-white/60">
-                                    Channel: <strong className="text-white">{KICK_CHANNEL}</strong>
+                            <div className="mt-3 flex gap-2">
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={addTestBots} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-lg text-cyan-400 text-xs font-bold transition-colors"><TestTubeIcon /> Add 20 Test Bots</motion.button>
+                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={clearAll} className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg text-red-400 transition-colors"><TrashIcon /></motion.button>
+                            </div>
+                            <div className="mt-3">
+                                <div className="flex items-center justify-between text-[10px] text-white/40 mb-1"><span>ACTIVE KEYWORD</span><span className="text-red-400">PRESS ENTER</span></div>
+                                <input type="text" value={pickerKeyword} onChange={(e) => setPickerKeyword(e.target.value.toLowerCase())} onKeyDown={(e) => e.key === 'Enter' && handlePickWinner()} className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white text-sm font-bold focus:outline-none focus:border-red-500 focus:shadow-[0_0_10px_rgba(239,68,68,0.3)] transition-all" />
+                            </div>
+                        </motion.div>
+
+                        <AnimatePresence>
+                            {showSettings && (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-white/10 p-4 overflow-hidden flex-shrink-0">
+                                    <h3 className="text-xs font-bold text-white/60 uppercase mb-3">Raffle Settings</h3>
+                                    <div className="space-y-3">
+                                        {[
+                                            { label: 'Subscriber Luck', state: subLuck, setState: setSubLuck, extra: subLuck && <div className="flex items-center gap-2 mt-2"><span className="text-[10px] text-white/50">Multiplier:</span><input type="number" min="1" max="10" value={subLuckMultiplier} onChange={(e) => setSubLuckMultiplier(parseInt(e.target.value) || 1)} className="w-12 px-2 py-1 bg-black/50 rounded text-xs text-center" /></div> },
+                                            { label: 'Exclude Moderators', state: excludeModerators, setState: setExcludeModerators },
+                                            { label: 'Exclude Bots', state: excludeBots, setState: setExcludeBots },
+                                            { label: 'Allow Re-entry', state: allowReEntry, setState: setAllowReEntry },
+                                            { label: 'Auto Pick', state: autoPick, setState: setAutoPick, extra: autoPick && <div className="flex items-center gap-2 mt-2"><span className="text-[10px] text-white/50">After:</span><input type="number" min="5" max="300" value={autoPickDelay} onChange={(e) => setAutoPickDelay(parseInt(e.target.value) || 30)} className="w-14 px-2 py-1 bg-black/50 rounded text-xs text-center" /><span className="text-[10px] text-white/50">sec</span></div> }
+                                        ].map((setting, idx) => (
+                                            <div key={idx}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-white/80">{setting.label}</span>
+                                                    <button onClick={() => setting.setState(!setting.state)} className={`w-10 h-5 rounded-full transition-colors relative ${setting.state ? 'bg-red-500' : 'bg-white/20'}`}>
+                                                        <motion.div className="absolute top-0.5 w-4 h-4 rounded-full bg-white" animate={{ x: setting.state ? 22 : 2 }} transition={{ type: "spring", stiffness: 500, damping: 30 }} />
+                                                    </button>
+                                                </div>
+                                                {setting.extra}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="flex-1 bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-white/10 flex flex-col min-h-0 overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 flex-shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className={`w-2 h-2 rounded-full ${connectionStatus === 'Connected' || isTestMode ? 'bg-red-500' : 'bg-gray-500'}`} />
+                                    <span className="text-xs font-bold text-white/60">LIVE CHAT</span>
+                                </div>
+                                <span className="text-[10px] text-red-400 flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                    {connectionStatus === 'Connected' || isTestMode ? 'CONNECTED' : 'DISCONNECTED'}
                                 </span>
                             </div>
-                        </div>
-
-                        {/* Picker Column */}
-                        <div className="md:col-span-1 bg-black/70 backdrop-blur-sm border border-red-800/50 rounded-2xl p-6 flex flex-col items-center justify-between h-[600px]">
-                            <div className="w-full text-center">
-                                <TrophyIcon className="w-16 h-16 text-red-400 mb-6 mx-auto" />
-                                <h3 className="text-2xl font-bold mb-4">Winner</h3>
+                            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 space-y-1">
+                                <AnimatePresence>
+                                    {messages.length === 0
+                                        ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/20 text-sm py-10">Waiting for messages...</motion.div>
+                                        : messages.map(msg => <ChatMessage key={msg.id} msg={msg} isEntry={msg.text?.trim().toLowerCase() === pickerKeyword} />)
+                                    }
+                                </AnimatePresence>
                             </div>
-
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={winner ? winner.user : 'waiting'}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="w-full h-24 flex items-center justify-center text-center px-4"
-                                >
-                                    {winner ? (
-                                        <span 
-                                            className="text-3xl font-bold truncate" 
-                                            style={{ 
-                                                color: winner.color,
-                                                textShadow: `0 0 15px ${winner.color}66`
-                                            }}
-                                        >
-                                            {winner.user}
-                                        </span>
-                                    ) : (
-                                        <span className="text-2xl text-white/50">
-                                            Click to draw
-                                        </span>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
-
-                            <div className="w-full">
-                                <label className="text-xs uppercase text-white/50 tracking-wide">
-                                    Picker Keyword
-                                </label>
-                                <input
-                                    type="text"
-                                    value={pickerKeyword}
-                                    onChange={(e) => setPickerKeyword(e.target.value)}
-                                    className="w-full mt-2 mb-4 px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white text-center font-semibold tracking-wider focus:outline-none focus:border-red-500 transition-colors"
-                                    disabled={isPicking}
-                                />
-
-                                <button
-                                    onClick={handlePickWinner}
-                                    disabled={isPicking}
-                                    className={`w-full px-8 py-3 text-white font-semibold text-base rounded-xl bg-red-600 border border-red-700 shadow-[0_0_8px_rgba(255,80,80,0.4)] hover:shadow-[0_0_14px_4px_rgba(255,80,80,0.3)] hover:scale-105 active:scale-95 transition duration-200 tracking-wide
-                                    ${isPicking ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {isPicking ? 'Picking...' : 'DRAW WINNER'}
-                                </button>
-                                <p className="text-xs text-white/50 mt-4">
-                                    {isPicking ? 'Selecting winner...' : (winner && winner.user !== `No users typed "${pickerKeyword}"` && winner.user !== 'Please set a keyword!' ? 'Congratulations!' : `Users who typed "${pickerKeyword}"`)}
-                                </p>
-                            </div>
-                        </div>
+                        </motion.div>
                     </div>
-                </section>
-            </main>
 
+                    {/* RIGHT */}
+                    <div className="lg:col-span-8 flex flex-col gap-3 h-full overflow-hidden">
+                        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-4 gap-3 flex-shrink-0">
+                            {[
+                                { icon: <UsersIcon />,   label: 'Entries',  value: totalEntries, color: 'blue' },
+                                { icon: <CheckIcon />,   label: 'Eligible', value: new Set(participants.map(p => p.user)).size, color: 'red', active: true },
+                                { icon: <HashIcon />,    label: 'Keyword',  value: pickerKeyword, color: 'purple', isText: true },
+                                { icon: <DiamondIcon />, label: 'Sub Luck', value: subLuck ? `${subLuckMultiplier}x` : 'OFF', color: 'pink' }
+                            ].map((stat, idx) => (
+                                <motion.div key={idx} whileHover={{ scale: 1.02, y: -2 }} className={`bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border ${stat.active ? 'border-red-500/30' : 'border-white/10'} p-3 flex items-center gap-3`}>
+                                    <div className={`w-10 h-10 rounded-lg bg-${stat.color}-500/20 flex items-center justify-center`}>{stat.icon}</div>
+                                    <div>
+                                        <div className={`text-[10px] uppercase font-bold ${stat.active ? 'text-red-400' : 'text-white/40'}`}>{stat.label}</div>
+                                        <div className={`text-2xl font-black ${stat.isText ? 'text-lg truncate max-w-[80px]' : 'text-white'}`}>{stat.value}</div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-white/10 relative overflow-hidden flex flex-col min-h-0">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+                                <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity }} className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/20 rounded-lg border border-orange-500/30">
+                                    <div className="w-2 h-2 rounded-full bg-orange-400" />
+                                    <span className="text-xs font-bold text-orange-400">
+                                        {isPicking ? 'ROLLING...' : winner ? 'WINNER SELECTED' : 'WAITING FOR ENTRIES'}
+                                    </span>
+                                    {autoPick && !isPicking && !winner && participants.length > 0 && <span className="text-xs text-orange-400/60">(Auto: {autoPickDelay}s)</span>}
+                                </motion.div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 px-2 py-1 bg-red-500/20 rounded text-[10px] text-red-400 border border-red-500/30"><BanIcon /> {bannedCount}</div>
+                                    <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 rounded text-[10px] text-orange-400 border border-orange-500/30"><ClockIcon /> {timeoutCount}</div>
+                                    <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded text-[10px] text-green-400 border border-green-500/30"><UnlockIcon /> {unbanCount}</div>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 relative flex items-center justify-center min-h-0 overflow-hidden">
+                                <AnimatePresence mode="wait">
+                                    {isPicking ? (
+                                        <motion.div key="rolling" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col items-center justify-center px-4">
+                                            <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-xs text-red-400 uppercase tracking-[0.3em] font-bold mb-6">🎰 Spinning...</motion.div>
+                                            <div className="w-full">
+                                                <SlotMachineWheel isRolling={isPicking} candidates={participants} finalWinner={winner} onComplete={handleRollComplete} />
+                                            </div>
+                                        </motion.div>
+                                    ) : winner ? (
+                                        <motion.div key="winner" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="text-center relative z-10">
+                                            <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-xs uppercase tracking-[0.3em] text-red-400 font-bold mb-6">Winner Is</motion.div>
+                                            <div className="relative inline-block">
+                                                <motion.div
+                                                    animate={{ boxShadow: ['0 0 60px rgba(239,68,68,0.4)','0 0 100px rgba(239,68,68,0.6)','0 0 60px rgba(239,68,68,0.4)'] }}
+                                                    transition={{ duration: 2, repeat: Infinity }}
+                                                    className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-red-500 bg-black"
+                                                >
+                                                    <UserAvatar src={winner.avatar} alt={winner.user} className="w-full h-full" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-red-900/50 to-transparent" />
+                                                </motion.div>
+                                            </div>
+                                            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 text-4xl font-black text-white italic" style={{ textShadow: '0 0 40px rgba(239,68,68,0.6)' }}>
+                                                {winner.user}
+                                            </motion.div>
+                                            {winner.isSubscriber && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-2 text-xs text-purple-400 font-bold">⭐ Subscriber</motion.div>}
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/30">
+                                            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity }} className="w-32 h-32 rounded-full bg-white/5 mx-auto mb-4 flex items-center justify-center ring-2 ring-white/10"><TrophyIcon /></motion.div>
+                                            <p className="text-lg font-bold">Ready to pick winner</p>
+                                            <p className="text-sm text-white/40 mt-1">{new Set(participants.map(p => p.user)).size} eligible</p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            <div className="px-4 py-2 border-t border-white/10 flex items-center justify-between text-[10px] flex-shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center gap-1 text-red-500 font-bold"><CheckIcon /> FAIR</span>
+                                    <span className="text-white/40 font-mono truncate max-w-[150px]">HASH: {btoa(rollCount + pickerKeyword).substring(0, 15)}...</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="flex items-center gap-1 text-white/40">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                        ID: {Math.random().toString(36).substring(2, 8).toUpperCase()}
+                                    </span>
+                                    <span className="text-white/40 font-mono">ROLLS: {rollCount}</span>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-white/10 p-3 flex-shrink-0">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase font-bold"><UsersIcon /> Eligible Participants ({new Set(participants.map(p => p.user)).size})</div>
+                                {subLuck && <div className="text-[10px] text-purple-400">Subs have {subLuckMultiplier}x luck</div>}
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                                {participants.length === 0
+                                    ? <span className="text-xs text-white/20 py-2">No entries yet...</span>
+                                    : Array.from(new Map(participants.map(p => [p.user, p])).values()).map(p => (
+                                        <motion.div key={p.user} initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex-shrink-0 flex items-center gap-2 px-2 py-1.5 bg-white/5 rounded-lg border border-white/10 hover:border-red-500/30 transition-colors">
+                                            <UserAvatar src={p.avatar} alt={p.user} className="w-6 h-6 rounded-full" />
+                                            <span className="text-xs font-medium text-white/80">{p.user}</span>
+                                            {p.isSubscriber && <span className="text-[10px] text-purple-400">⭐</span>}
+                                        </motion.div>
+                                    ))
+                                }
+                            </div>
+                        </motion.div>
+
+                        <motion.button
+                            whileHover={participants.length > 0 && !isPicking ? { scale: 1.01 } : {}}
+                            whileTap={participants.length > 0 && !isPicking ? { scale: 0.99 } : {}}
+                            onClick={handlePickWinner}
+                            disabled={isPicking || participants.length === 0}
+                            className={`w-full py-4 rounded-xl font-black text-xl uppercase tracking-wider flex items-center justify-center gap-3 transition-all shadow-lg flex-shrink-0 ${isPicking || participants.length === 0 ? 'bg-gray-800 text-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white hover:shadow-red-500/40 animate-pulse'}`}
+                        >
+                            <TrophyIcon />
+                            {isPicking
+                                ? <span className="flex items-center gap-2"><motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>⟳</motion.span>Rolling...</span>
+                                : `Pick Winner (${new Set(participants.map(p => p.user)).size})`
+                            }
+                        </motion.button>
+                    </div>
+                </div>
+            </main>
             <AppFooter />
         </div>
     );

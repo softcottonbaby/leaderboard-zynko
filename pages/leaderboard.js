@@ -6,7 +6,7 @@ const SITES = {
   csdrop: {
     id: 'csdrop',
     name: 'CSDrop',
-    logo: '/sites/csdrop-logo.webp',
+    logo: '/csdrop/logo_csdrop.webp',
     apiEndpoint: '/api/csdrop-leaderboard',
     prizes: { 1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 },
     accentColor: 'rgba(59, 130, 246, 0.95)',
@@ -15,29 +15,17 @@ const SITES = {
     totalPrize: '1,000',
     theme: 'blue'
   },
-  site2: {
-    id: 'site2',
-    name: 'Site 2',
-    logo: '/sites/site2-logo.webp',
-    apiEndpoint: '/api/site2-leaderboard',
-    prizes: { 1: 500, 2: 300, 3: 200, 4: 100, 5: 50 },
-    accentColor: 'rgba(239, 68, 68, 0.95)',
-    coinIcon: '/csgold/app-coin-red.webp',
-    endDate: '2026-03-15T23:59:59Z',
+  ruxbet: {
+    id: 'ruxbet',
+    name: 'Ruxbet',
+    logo: '/ruxbet/ruxbetlogo.png',
+    apiEndpoint: '/api/ruxbet-leaderboard',
+    prizes: { 1: 500, 2: 300, 3: 200, 4: 100, 5: 50, 6: 25, 7: 15, 8: 10, 9: 5, 10: 5 },
+    accentColor: 'rgba(0, 255, 0, 0.95)',
+    coinIcon: '/csgold/app-coin-green.webp',
+    endDate: '2026-03-09T23:59:59Z',
     totalPrize: '2,000',
-    theme: 'red'
-  },
-  site3: {
-    id: 'site3',
-    name: 'Site 3',
-    logo: '/sites/site3-logo.webp',
-    apiEndpoint: '/api/site3-leaderboard',
-    prizes: { 1: 1000, 2: 500, 3: 250, 4: 125, 5: 75, 6: 50 },
-    accentColor: 'rgba(168, 85, 247, 0.95)',
-    coinIcon: '/csgold/app-coin-purple.webp',
-    endDate: '2026-03-01T23:59:59Z',
-    totalPrize: '5,000',
-    theme: 'purple'
+    theme: 'green'
   }
 };
 
@@ -82,7 +70,10 @@ const PodiumCard = memo(({ player, position, accent, coinIcon, theme }) => {
   };
 
   const getRankStyling = (pos) => {
-    const gradients = { blue: { 1: '#3b82f6', 2: '#60a5fa', 3: '#93c5fd' }, red: { 1: '#ef4444', 2: '#f87171', 3: '#fca5a5' }, purple: { 1: '#a855f7', 2: '#c084fc', 3: '#d8b4fe' } };
+    const gradients = { 
+      blue: { 1: '#3b82f6', 2: '#60a5fa', 3: '#93c5fd' }, 
+      green: { 1: '#10b981', 2: '#34d399', 3: '#6ee7b7' }
+    };
     const colors = gradients[theme] || gradients.blue;
     switch (pos) {
       case 1: return { background: `linear-gradient(45deg, ${colors[1]}, ${colors[2]})`, color: 'white', boxShadow: `0 0 15px ${colors[1]}66` };
@@ -134,16 +125,54 @@ const PodiumTop3 = memo(({ players = [], accent, coinIcon, theme }) => {
 });
 PodiumTop3.displayName = 'PodiumTop3';
 
-// FIXED: Smaller SiteTab with centered indicator
 const SiteTab = memo(({ site, isActive, onClick }) => {
   return (
-    <button onClick={onClick} className={`relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300 min-w-[80px] group ${isActive ? 'bg-white/10' : 'hover:bg-white/5'}`}>
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1.5 transition-all duration-300 ${isActive ? 'ring-2 ring-white/50' : 'opacity-60 group-hover:opacity-100'}`}>
-        <img src={site.logo} alt={site.name} className="w-7 h-7 object-contain" loading="lazy" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-[10px] font-bold hidden">{site.name.slice(0, 2).toUpperCase()}</div>
+    <button 
+      onClick={onClick} 
+      className={`relative transition-all duration-300 group flex flex-col items-center gap-2
+        ${isActive ? 'scale-105' : 'hover:scale-102'}`}
+    >
+      <div 
+        className={`relative w-32 h-16 md:w-40 md:h-20 rounded-xl overflow-hidden bg-black/50 transition-all duration-300 flex items-center justify-center
+          ${isActive 
+            ? 'ring-2 ring-white/50 shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
+            : 'ring-1 ring-white/10 opacity-60 hover:opacity-90'
+          }`}
+      >
+        <img 
+          src={site.logo} 
+          alt={site.name} 
+          className="w-full h-full object-contain p-2"
+          loading="lazy" 
+          onError={(e) => { 
+            e.target.style.display = 'none'; 
+            e.target.parentElement.querySelector('.fallback').style.display = 'flex'; 
+          }} 
+        />
+        <div className="fallback absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center hidden">
+          <span className="text-2xl font-bold text-white/50">{site.name.charAt(0)}</span>
+        </div>
+        
+        {isActive && (
+          <div 
+            className="absolute inset-0 opacity-30 pointer-events-none"
+            style={{ 
+              background: `linear-gradient(135deg, ${site.accentColor.replace('0.95', '0.3')} 0%, transparent 50%)` 
+            }}
+          />
+        )}
       </div>
-      <span className={`text-xs font-bold transition-colors ${isActive ? 'text-white' : 'text-white/60'}`}>{site.name}</span>
-      {isActive && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full" style={{ backgroundColor: site.accentColor.replace('0.95', '1') }} />}
+
+      <span className={`text-xs font-medium transition-colors ${isActive ? 'text-white' : 'text-white/50'}`}>
+        {site.name}
+      </span>
+
+      {isActive && (
+        <div 
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: site.accentColor.replace('0.95', '1') }}
+        />
+      )}
     </button>
   );
 });
@@ -164,33 +193,104 @@ export default function Leaderboard() {
     if (!activeSite) return;
     try {
       const response = await fetch(activeSite.apiEndpoint);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      // If response not ok, handle gracefully
+      if (!response.ok) {
+        console.warn(`API error for ${activeSiteId}: HTTP ${response.status}`);
+        // For ruxbet, return empty array instead of crashing
+        if (activeSiteId === 'ruxbet') {
+          setPlayers([]);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
-      const rawList = data.rankings || [];
-      let processedPlayers = rawList.map((p, idx) => ({ id: p.user?.hash_id || `temp-${idx}`, username: p.user?.name || "Anonymous", avatar: p.user?.avatar || "/default-avatar.png", wageredAmount: parseFloat(p.total) / 100, rank: idx + 1 }));
-      processedPlayers.sort((a, b) => b.wageredAmount - a.wageredAmount);
-      const formatted = processedPlayers.map((p, index) => { const currentRank = index + 1; return { ...p, rank: currentRank, id: p.id.startsWith('temp-') ? `user-${currentRank}-${Date.now()}` : p.id, reward: activeSite.prizes[currentRank] ? `${activeSite.prizes[currentRank]}` : "-" }; });
-      setPlayers(formatted);
+      
+      let processedPlayers = [];
+      
+      if (activeSiteId === 'ruxbet') {
+        // Ruxbet API format: { data: [{ name, endsAt, standings: [...] }] }
+        const leaderboardData = Array.isArray(data.data) ? data.data[0] : data;
+        const standings = leaderboardData?.standings || [];
+        
+        processedPlayers = standings.map((p, idx) => ({
+          id: `ruxbet-${idx}-${Date.now()}`,
+          username: p.username || "Anonymous",
+          avatar: "/default-avatar.png",
+          wageredAmount: parseFloat(p.wageredUsd) || 0,
+          rank: p.position || idx + 1,
+          reward: p.prizeUsd ? `${p.prizeUsd}` : "-"
+        }));
+      } else {
+        // CSDrop format: { rankings: [...] }
+        const rawList = data.rankings || [];
+        processedPlayers = rawList.map((p, idx) => ({
+          id: p.user?.hash_id || `temp-${idx}`,
+          username: p.user?.name || "Anonymous",
+          avatar: p.user?.avatar || "/default-avatar.png",
+          wageredAmount: parseFloat(p.total) / 100,
+          rank: idx + 1
+        }));
+        
+        processedPlayers.sort((a, b) => b.wageredAmount - a.wageredAmount);
+        processedPlayers = processedPlayers.map((p, index) => {
+          const currentRank = index + 1;
+          return {
+            ...p,
+            rank: currentRank,
+            id: p.id.startsWith('temp-') ? `user-${currentRank}-${Date.now()}` : p.id,
+            reward: activeSite.prizes[currentRank] ? `${activeSite.prizes[currentRank]}` : "-"
+          };
+        });
+      }
+      
+      setPlayers(processedPlayers);
       setError(null);
     } catch (err) {
       console.error("Leaderboard fetch failed:", err);
-      setError(err.message);
-    } finally { setLoading(false); }
-  }, [activeSite]);
+      // Don't crash, just show empty state
+      setPlayers([]);
+      setError(null);
+    } finally { 
+      setLoading(false); 
+    }
+  }, [activeSite, activeSiteId]);
 
-  useEffect(() => { setLoading(true); setPlayers([]); fetchLeaderboard(); intervalRef.current = setInterval(fetchLeaderboard, 15000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, [fetchLeaderboard, activeSiteId]);
+  useEffect(() => { 
+    setLoading(true); 
+    setPlayers([]); 
+    fetchLeaderboard(); 
+    intervalRef.current = setInterval(fetchLeaderboard, 60000);
+    return () => { 
+      if (intervalRef.current) clearInterval(intervalRef.current); 
+    }; 
+  }, [fetchLeaderboard, activeSiteId]);
 
   useEffect(() => {
     if (!activeSite?.endDate) return;
     const endDate = new Date(activeSite.endDate);
     const updateCountdown = () => {
       const diff = endDate - new Date();
-      if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 }); if (countdownRef.current) clearInterval(countdownRef.current); return; }
-      setTimeLeft({ days: Math.floor(diff / 86400000), hours: Math.floor((diff / 3600000) % 24), minutes: Math.floor((diff / 60000) % 60), seconds: Math.floor((diff / 1000) % 60) });
+      if (diff <= 0) { 
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 }); 
+        if (countdownRef.current) clearInterval(countdownRef.current); 
+        return; 
+      }
+      setTimeLeft({ 
+        days: Math.floor(diff / 86400000), 
+        hours: Math.floor((diff / 3600000) % 24), 
+        minutes: Math.floor((diff / 60000) % 60), 
+        seconds: Math.floor((diff / 1000) % 60) 
+      });
     };
     updateCountdown();
     countdownRef.current = setInterval(updateCountdown, 1000);
-    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+    return () => { 
+      if (countdownRef.current) clearInterval(countdownRef.current); 
+    };
   }, [activeSite?.endDate]);
 
   const filledPlayers = useMemo(() => {
@@ -200,12 +300,23 @@ export default function Leaderboard() {
     for (let i = 1; i <= totalSlots; i++) {
       const existingPlayer = combined.find(p => Number(p.rank) === i);
       if (existingPlayer) finalBoard.push(existingPlayer);
-      else finalBoard.push({ id: `empty-${i}-${activeSiteId}`, rank: i, username: "EMPTY", avatar: "/default-avatar.png", wageredAmount: 0, reward: activeSite?.prizes[i] ? `${activeSite.prizes[i]}` : "-" });
+      else finalBoard.push({ 
+        id: `empty-${i}-${activeSiteId}`, 
+        rank: i, 
+        username: "EMPTY", 
+        avatar: "/default-avatar.png", 
+        wageredAmount: 0, 
+        reward: activeSite?.prizes[i] ? `${activeSite.prizes[i]}` : "-" 
+      });
     }
     return finalBoard;
   }, [players, activeSiteId, activeSite]);
 
-  const handleSiteChange = useCallback((siteId) => { if (siteId === activeSiteId) return; setActiveSiteId(siteId); }, [activeSiteId]);
+  const handleSiteChange = useCallback((siteId) => { 
+    if (siteId === activeSiteId) return; 
+    setActiveSiteId(siteId); 
+  }, [activeSiteId]);
+  
   if (!activeSite) return null;
 
   return (
@@ -222,11 +333,17 @@ export default function Leaderboard() {
         </nav>
 
         <section className="w-full max-w-5xl px-4 text-white">
-          {/* FIXED: Smaller Site Selector Bar */}
-          <div className="mb-8">
-            <p className="text-center text-xs uppercase tracking-wider text-white/50 mb-3">Select Leaderboard</p>
-            <div className="flex justify-center gap-2 bg-black/40 backdrop-blur-md rounded-xl p-2 border border-white/10 w-fit mx-auto">
-              {Object.values(SITES).map((site) => (<SiteTab key={site.id} site={site} isActive={activeSiteId === site.id} onClick={() => handleSiteChange(site.id)} />))}
+          <div className="mb-10">
+            <p className="text-center text-xs uppercase tracking-wider text-white/50 mb-4">Select Leaderboard</p>
+            <div className="flex justify-center gap-4 md:gap-6 bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-fit mx-auto flex-wrap">
+              {Object.values(SITES).map((site) => (
+                <SiteTab 
+                  key={site.id} 
+                  site={site} 
+                  isActive={activeSiteId === site.id} 
+                  onClick={() => handleSiteChange(site.id)} 
+                />
+              ))}
             </div>
           </div>
 
