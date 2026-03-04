@@ -20,11 +20,11 @@ const SITES = {
     name: 'Ruxbet',
     logo: '/ruxbet/ruxbetlogo.png',
     apiEndpoint: '/api/ruxbet-leaderboard',
-    prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 5 },
+    prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 10 },
     accentColor: 'rgba(0, 255, 0, 0.95)',
     coinIcon: '/ruxbet/usdcoin.png',
     endDate: '2026-03-09T23:59:59Z',
-    totalPrize: '495',
+    totalPrize: '500',
     theme: 'green'
   }
 };
