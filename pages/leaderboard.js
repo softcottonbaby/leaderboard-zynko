@@ -2,31 +2,33 @@ import React, { useEffect, useState, useRef, useCallback, useMemo, memo } from "
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- SITE CONFIGURATION ---
+// Only Ruxbet for now - easy to add more later
 const SITES = {
-  csdrop: {
-    id: 'csdrop',
-    name: 'CSDrop',
-    logo: '/csdrop/logo_csdrop.webp',
-    apiEndpoint: '/api/csdrop-leaderboard',
-    prizes: { 1: 400, 2: 250, 3: 150, 4: 90, 5: 60, 6: 35, 7: 15 },
-    accentColor: 'rgba(59, 130, 246, 0.95)',
-    coinIcon: '/csgold/app-coin-blue.webp',
-    endDate: '2026-02-28T23:59:59Z',
-    totalPrize: '1,000',
-    theme: 'blue'
-  },
   ruxbet: {
     id: 'ruxbet',
     name: 'Ruxbet',
     logo: '/ruxbet/ruxbetlogo.png',
-    apiEndpoint: '/api/ruxbet-leaderboard?code=zynko', // Added campaign code
+    apiEndpoint: '/api/ruxbet-leaderboard?code=zynko',
     prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 5 },
-    accentColor: 'rgba(16, 185, 129, 0.95)', // Green for Ruxbet
+    accentColor: 'rgba(0, 255, 47, 0.95)', // Green for Ruxbet
     coinIcon: '/ruxbet/usdcoin.png',
     endDate: '2026-03-09T23:59:59Z',
     totalPrize: '500',
     theme: 'green'
   }
+  // Add more sites here in the future:
+  // newSite: {
+  //   id: 'newsite',
+  //   name: 'New Site',
+  //   logo: '/newsite/logo.png',
+  //   apiEndpoint: '/api/newsite-leaderboard',
+  //   prizes: { 1: 100, 2: 50, 3: 25 },
+  //   accentColor: 'rgba(239, 68, 68, 0.95)',
+  //   coinIcon: '/newsite/coin.png',
+  //   endDate: '2026-12-31T23:59:59Z',
+  //   totalPrize: '175',
+  //   theme: 'red'
+  // }
 };
 
 const Counter = memo(({ from = 0, to, fractionDigits = 0, duration = 1000 }) => {
@@ -72,9 +74,10 @@ const PodiumCard = memo(({ player, position, accent, coinIcon, theme }) => {
   const getRankStyling = (pos) => {
     const gradients = { 
       blue: { 1: '#3b82f6', 2: '#60a5fa', 3: '#93c5fd' }, 
-      green: { 1: '#10b981', 2: '#34d399', 3: '#6ee7b7' }
+      green: { 1: '#00ff22', 2: '#00ff26', 3: '#6ee7b7' },
+      red: { 1: '#ef4444', 2: '#f87171', 3: '#fca5a5' }
     };
-    const colors = gradients[theme] || gradients.blue;
+    const colors = gradients[theme] || gradients.green;
     switch (pos) {
       case 1: return { background: `linear-gradient(45deg, ${colors[1]}, ${colors[2]})`, color: 'white', boxShadow: `0 0 15px ${colors[1]}66` };
       case 2: return { background: `linear-gradient(45deg, #e8ecf2, #b6c0d2)`, color: 'black', boxShadow: '0 0 15px rgba(192, 192, 192, 0.6)' };
@@ -179,7 +182,8 @@ const SiteTab = memo(({ site, isActive, onClick }) => {
 SiteTab.displayName = 'SiteTab';
 
 export default function Leaderboard() {
-  const [activeSiteId, setActiveSiteId] = useState('csdrop');
+  // Default to ruxbet since it's the only one now
+  const [activeSiteId, setActiveSiteId] = useState('ruxbet');
   const [players, setPlayers] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [loading, setLoading] = useState(true);
@@ -196,13 +200,10 @@ export default function Leaderboard() {
       
       if (!response.ok) {
         console.warn(`API error for ${activeSiteId}: HTTP ${response.status}`);
-        if (activeSiteId === 'ruxbet') {
-          setPlayers([]);
-          setError(null);
-          setLoading(false);
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
+        setPlayers([]);
+        setError(null);
+        setLoading(false);
+        return;
       }
       
       const data = await response.json();
@@ -223,13 +224,14 @@ export default function Leaderboard() {
           reward: p.prizeUsd ? `${p.prizeUsd}` : "-"
         }));
       } else {
-        const rawList = data.rankings || [];
+        // Generic handler for future sites
+        const rawList = data.rankings || data.standings || [];
         processedPlayers = rawList.map((p, idx) => ({
-          id: p.user?.hash_id || `temp-${idx}`,
-          username: p.user?.name || "Anonymous",
+          id: p.user?.hash_id || p.username || `temp-${idx}`,
+          username: p.user?.name || p.username || "Anonymous",
           avatar: p.user?.avatar || "/default-avatar.png",
-          wageredAmount: parseFloat(p.total) / 100,
-          rank: idx + 1
+          wageredAmount: parseFloat(p.total || p.wageredUsd) / (p.total ? 100 : 1),
+          rank: p.position || idx + 1
         }));
         
         processedPlayers.sort((a, b) => b.wageredAmount - a.wageredAmount);
@@ -329,6 +331,7 @@ export default function Leaderboard() {
         </nav>
 
         <section className="w-full max-w-5xl px-4 text-white">
+          {/* Site Switcher - Shows even with 1 site for future expansion */}
           <div className="mb-10">
             <p className="text-center text-xs uppercase tracking-wider text-white/50 mb-4">Select Leaderboard</p>
             <div className="flex justify-center gap-4 md:gap-6 bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-fit mx-auto flex-wrap">
