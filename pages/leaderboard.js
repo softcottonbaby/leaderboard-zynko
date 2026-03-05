@@ -19,9 +19,9 @@ const SITES = {
     id: 'ruxbet',
     name: 'Ruxbet',
     logo: '/ruxbet/ruxbetlogo.png',
-    apiEndpoint: '/api/ruxbet-leaderboard',
-    prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 10 },
-    accentColor: 'rgba(0, 255, 0, 0.95)',
+    apiEndpoint: '/api/ruxbet-leaderboard?code=zynko', // Added campaign code
+    prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 5 },
+    accentColor: 'rgba(16, 185, 129, 0.95)', // Green for Ruxbet
     coinIcon: '/ruxbet/usdcoin.png',
     endDate: '2026-03-09T23:59:59Z',
     totalPrize: '500',
@@ -210,7 +210,8 @@ export default function Leaderboard() {
       let processedPlayers = [];
       
       if (activeSiteId === 'ruxbet') {
-        const leaderboardData = Array.isArray(data.data) ? data.data[0] : data;
+        // v2.0 API response format: { leaderboards: [...] }
+        const leaderboardData = data.leaderboards?.[0];
         const standings = leaderboardData?.standings || [];
         
         processedPlayers = standings.map((p, idx) => ({
