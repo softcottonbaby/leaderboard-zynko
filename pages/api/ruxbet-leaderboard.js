@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     const leaderboardName = 'Zynko Weekly Race'; // <-- UPDATE THIS WITH YOUR ACTUAL LEADERBOARD NAME
     const encodedName = encodeURIComponent(leaderboardName);
     
-    // FIXED: Removed space in URL
+    // ✅ FIXED: Removed space before ${encodedName}
     const response = await fetch(`https://api.ruxbet.com/leaderboards/export/${encodedName}`, {
       headers: {
         'Authorization': `Bearer ${RUXBET_API_KEY}`,
