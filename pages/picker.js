@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- ICONS ---
+// --- ICONS (unchanged) ---
 const KickIcon = memo(() => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
         <path d="M19.125 6.375H16.5L13.875 12L16.5 17.625H19.125L16.5 12L19.125 6.375ZM12.375 6.375H9.75L7.125 12L9.75 17.625H12.375L9.75 12L12.375 6.375ZM5.625 6.375H3L0.375 12L3 17.625H5.625L3 12L5.625 6.375Z" />
@@ -153,9 +153,7 @@ KickBadge.displayName = 'KickBadge';
 const UserAvatar = memo(({ src, alt, className }) => {
     const [error, setError] = useState(false);
     
-    useEffect(() => { 
-        setError(false); 
-    }, [src]);
+    useEffect(() => { setError(false); }, [src]);
     
     const isValidSrc = src && typeof src === 'string' && (
         src.startsWith('http://') || 
@@ -210,318 +208,198 @@ const ChatMessage = memo(({ msg, isEntry }) => {
 });
 ChatMessage.displayName = 'ChatMessage';
 
-// ── SlotMachineWheel ──────────────────────────────────────────────────────────
-const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete }) => {
-    const outerRef = useRef(null);
+// ── FIXED SLOT MACHINE ────────────────────────────────────────────────────────
+// CRITICAL FIX: Use a module-level Set to track which rollKeys have started
+// This persists across StrictMode's double mount/unmount cycles
+const startedRolls = new Set();
+
+const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete, rollKey }) => {
+    const containerRef = useRef(null);
     const stripRef = useRef(null);
-    const busyRef = useRef(false);
-    const timersRef = useRef([]);
-    const snapshotRef = useRef([]);
-    const animationFrameRef = useRef(null);
-    const hasCompletedRef = useRef(false);
     
-    const [items, setItems] = useState([]);
-    const [highlightIdx, setHighlight] = useState(null);
-    const [hasSnapshot, setHasSnapshot] = useState(false);
-    const [isAnimating, setIsAnimating] = useState(false);
+    const [displayItems, setDisplayItems] = useState([]);
+    const [animState, setAnimState] = useState('idle');
+    const [isWinnerHighlighted, setIsWinnerHighlighted] = useState(false);
 
-    const ITEM_W = 120, GAP = 14, STEP = 134, COPIES = 12;
+    const ITEM_WIDTH = 120;
+    const GAP = 14;
+    const TOTAL_ITEM_WIDTH = ITEM_WIDTH + GAP;
 
-    const clearAllTimers = useCallback(() => {
-        timersRef.current.forEach(clearTimeout);
-        timersRef.current = [];
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = null;
-        }
-    }, []);
-
-    const resetState = useCallback(() => {
-        clearAllTimers();
-        busyRef.current = false;
-        setIsAnimating(false);
-        hasCompletedRef.current = false;
-    }, [clearAllTimers]);
-
-    // Cleanup on unmount
+    // Generate items and check if we should start animation
     useEffect(() => {
+        if (!isRolling || !finalWinner) return;
+        
+        // CRITICAL: Check if this rollKey has already started (StrictMode protection)
+        if (startedRolls.has(rollKey)) {
+            console.log('Roll already started, skipping duplicate');
+            return;
+        }
+        
+        // Mark this roll as started immediately
+        startedRolls.add(rollKey);
+        
+        const uniqueCandidates = Array.from(
+            new Map(candidates.map(p => [p.user, p])).values()
+        );
+        
+        if (uniqueCandidates.length === 0) {
+            onComplete();
+            return;
+        }
+
+        // Generate items with winner at fixed position
+        const items = [];
+        const winnerPos = 40;
+        const totalItems = 55;
+        
+        for (let i = 0; i < totalItems; i++) {
+            if (i === winnerPos) {
+                items.push({ ...finalWinner, _id: `roll-${rollKey}-winner-${i}`, isWinner: true });
+            } else {
+                const randomIdx = Math.floor(Math.random() * uniqueCandidates.length);
+                const candidate = uniqueCandidates[randomIdx];
+                items.push({ ...candidate, _id: `roll-${rollKey}-${i}`, isWinner: false });
+            }
+        }
+        
+        setDisplayItems(items);
+        setAnimState('ready');
+        
+        // Cleanup function - remove from started rolls after animation completes or component unmounts
         return () => {
-            clearAllTimers();
-            busyRef.current = false;
+            // Don't remove immediately - let it timeout
+            setTimeout(() => {
+                startedRolls.delete(rollKey);
+            }, 10000);
         };
-    }, [clearAllTimers]);
+    }, [rollKey, isRolling, finalWinner, candidates, onComplete]);
 
-    // Build items from candidates (for preview when not rolling)
+    // Run animation when items are ready
     useEffect(() => {
-        if (hasSnapshot || isAnimating) return;
+        if (animState !== 'ready' || !stripRef.current || !containerRef.current) return;
         
-        if (!candidates || candidates.length === 0) { 
-            setItems([]); 
-            return; 
-        }
-        
-        const seen = new Set(), unique = [];
-        candidates.forEach(c => { 
-            if (c?.user && !seen.has(c.user)) { 
-                seen.add(c.user); 
-                unique.push(c); 
-            } 
-        });
-        
-        const built = [];
-        for (let copy = 0; copy < COPIES; copy++) {
-            unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}-${c.user}` }));
-        }
-        
-        setItems(built);
-    }, [candidates, hasSnapshot, isAnimating]);
-
-    // Take snapshot when rolling starts
-    useEffect(() => {
-        if (isRolling && !hasSnapshot && !isAnimating) {
-            const currentCandidates = candidates || [];
-            
-            if (currentCandidates.length === 0) {
-                console.warn('No candidates available when roll started');
-                return;
-            }
-            
-            // Validate candidates
-            const validCandidates = currentCandidates.filter(c => c && c.user);
-            if (validCandidates.length === 0) {
-                console.error('No valid candidates with user property');
-                return;
-            }
-            
-            snapshotRef.current = [...validCandidates];
-            setHasSnapshot(true);
-            
-            // Build items from snapshot
-            const seen = new Set(), unique = [];
-            snapshotRef.current.forEach(c => { 
-                if (!seen.has(c.user)) { 
-                    seen.add(c.user); 
-                    unique.push(c); 
-                } 
-            });
-            
-            const built = [];
-            for (let copy = 0; copy < COPIES; copy++) {
-                unique.forEach((c, i) => built.push({ ...c, _key: `${copy}-${i}-${c.user}` }));
-            }
-            
-            setItems(built);
-            setHighlight(null);
-        }
-    }, [isRolling, hasSnapshot, isAnimating, candidates]);
-
-    // Reset when rolling stops
-    useEffect(() => {
-        if (!isRolling && hasSnapshot) {
-            const timer = setTimeout(() => {
-                setHasSnapshot(false);
-                snapshotRef.current = [];
-                resetState();
-                onComplete?.();
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [isRolling, hasSnapshot, resetState, onComplete]);
-
-    // Sync winner avatar into strip items when it arrives
-    useEffect(() => {
-        if (!finalWinner?.user) return;
-        
-        setItems(prev => prev.map(it => 
-            it.user === finalWinner.user ? { ...it, avatar: finalWinner.avatar } : it
-        ));
-    }, [finalWinner?.user, finalWinner?.avatar]);
-
-    // Run animation when we have snapshot and winner
-    useEffect(() => {
-        // GUARD CLAUSES - Prevent animation if conditions not met
-        if (!hasSnapshot || !finalWinner || items.length === 0) {
-            return;
-        }
-        
-        if (!outerRef.current || !stripRef.current) {
-            console.warn('Refs not available');
-            return;
-        }
-        
-        if (busyRef.current) {
-            console.warn('Animation already in progress');
-            return;
-        }
-        
-        if (!finalWinner.user) {
-            console.error('Winner has no user property');
-            return;
-        }
-
-        // Validate winner exists in items
-        const winnerExists = items.some(it => it.user === finalWinner.user);
-        if (!winnerExists) {
-            console.error('Winner not found in items:', finalWinner.user, 'Available:', items.slice(0, 5).map(i => i.user));
-            return;
-        }
-        
-        busyRef.current = true;
-        setIsAnimating(true);
-        setHighlight(null);
-        hasCompletedRef.current = false;
-        clearAllTimers();
-
         const strip = stripRef.current;
-        const outerW = outerRef.current.offsetWidth;
+        const container = containerRef.current;
+        const winnerPos = 40;
         
-        const rollingCandidates = snapshotRef.current;
+        const containerWidth = container.offsetWidth;
+        const centerOffset = (containerWidth - ITEM_WIDTH) / 2;
         
-        // Validate unique count
-        const seen = new Set();
-        rollingCandidates.forEach(it => {
-            if (it?.user) seen.add(it.user);
-        });
-        const uniqueCount = seen.size || 1;
+        // Calculate final position (winner centered)
+        const finalX = centerOffset - (winnerPos * TOTAL_ITEM_WIDTH);
         
-        if (uniqueCount === 0) {
-            console.error('No unique candidates');
-            busyRef.current = false;
-            setIsAnimating(false);
-            return;
-        }
+        // Start from right side (offscreen)
+        const startX = centerOffset + (containerWidth / 2) + (ITEM_WIDTH * 2);
         
-        const centerPx = outerW / 2 - STEP / 2;
-        const xForIdx = idx => centerPx - idx * STEP;
-
-        // Find winner with fallback strategies
-        const winCopyStart = 7 * uniqueCount;
-        let wIdx = -1;
-        
-        // Strategy 1: Look in expected position (copy 7)
-        for (let i = winCopyStart; i < winCopyStart + uniqueCount && i < items.length; i++) {
-            if (items[i]?.user === finalWinner.user) { 
-                wIdx = i; 
-                break; 
-            }
-        }
-        
-        // Strategy 2: Search all items
-        if (wIdx === -1) {
-            wIdx = items.findIndex(it => it.user === finalWinner.user);
-        }
-        
-        // Strategy 3: Use first occurrence as last resort
-        if (wIdx === -1) { 
-            console.error('Winner not found in items:', finalWinner.user);
-            busyRef.current = false;
-            setIsAnimating(false);
-            return; 
-        }
-
-        // Validate calculations
-        const overX = xForIdx(wIdx) - STEP * 0.72;
-        const startX = xForIdx(wIdx) + uniqueCount * STEP * 4;
-
-        if (isNaN(overX) || isNaN(startX)) {
-            console.error('Invalid animation coordinates:', { overX, startX, wIdx, uniqueCount });
-            busyRef.current = false;
-            setIsAnimating(false);
-            return;
-        }
-
-        // Apply initial position immediately
+        // Set initial position without transition
         strip.style.transition = 'none';
-        strip.style.transform = `translateX(${startX}px)`;
-
-        // Use double RAF for browser paint cycle
-        animationFrameRef.current = requestAnimationFrame(() => {
-            animationFrameRef.current = requestAnimationFrame(() => {
-                // Phase 1: Fast initial movement
-                strip.style.transition = 'transform 1s cubic-bezier(0.55, 0, 1, 0.45)';
-                strip.style.transform = `translateX(${xForIdx(wIdx) + uniqueCount * STEP * 3}px)`;
-                
-                // Phase 2: Linear rolling
-                const timer1 = setTimeout(() => { 
-                    if (!strip || hasCompletedRef.current) return;
-                    strip.style.transition = 'transform 2.8s linear'; 
-                    strip.style.transform = `translateX(${xForIdx(wIdx) + STEP * 0.72 + STEP}px)`; 
-                }, 950);
-                timersRef.current.push(timer1);
-                
-                // Phase 3: Deceleration
-                const timer2 = setTimeout(() => { 
-                    if (!strip || hasCompletedRef.current) return;
-                    strip.style.transition = 'transform 1.8s cubic-bezier(0.12, 0, 0.05, 1)'; 
-                    strip.style.transform = `translateX(${overX}px)`; 
-                }, 3750);
-                timersRef.current.push(timer2);
-                
-                // Phase 4: Final snap
-                const timer3 = setTimeout(() => { 
-                    if (!strip || hasCompletedRef.current) return;
-                    strip.style.transition = 'transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)'; 
-                    strip.style.transform = `translateX(${xForIdx(wIdx)}px)`; 
-                }, 5600);
-                timersRef.current.push(timer3);
-                
-                // Completion
-                const timer4 = setTimeout(() => { 
-                    if (hasCompletedRef.current) return;
-                    hasCompletedRef.current = true;
-                    setHighlight(wIdx); 
-                    busyRef.current = false;
-                    setIsAnimating(false);
-                }, 6550);
-                timersRef.current.push(timer4);
-            });
+        strip.style.transform = `translate3d(${startX}px, 0, 0)`;
+        
+        // Force reflow
+        void strip.offsetWidth;
+        
+        // Start animation in next frame
+        const rafId = requestAnimationFrame(() => {
+            if (!strip) return;
+            
+            setAnimState('rolling');
+            
+            // Single smooth animation to winner
+            strip.style.transition = 'transform 3.5s cubic-bezier(0.1, 0.7, 0.1, 1)';
+            strip.style.transform = `translate3d(${finalX}px, 0, 0)`;
+            
+            // Highlight winner at end
+            const highlightTimer = setTimeout(() => {
+                setIsWinnerHighlighted(true);
+            }, 3500);
+            
+            // Complete animation
+            const completeTimer = setTimeout(() => {
+                setAnimState('complete');
+                onComplete();
+            }, 3800);
+            
+            return () => {
+                clearTimeout(highlightTimer);
+                clearTimeout(completeTimer);
+            };
         });
+        
+        return () => cancelAnimationFrame(rafId);
+    }, [animState, onComplete, rollKey]);
 
-        // Safety timeout
-        const safetyTimer = setTimeout(() => {
-            if (busyRef.current && !hasCompletedRef.current) {
-                console.warn('Animation safety timeout triggered');
-                hasCompletedRef.current = true;
-                busyRef.current = false;
-                setIsAnimating(false);
-                setHighlight(wIdx);
+    // Safety timeout
+    useEffect(() => {
+        if (animState !== 'rolling') return;
+        
+        const safety = setTimeout(() => {
+            if (animState === 'rolling') {
+                console.warn('Safety timeout - forcing completion');
+                setAnimState('complete');
+                setIsWinnerHighlighted(true);
+                onComplete();
             }
-        }, 8000);
-        timersRef.current.push(safetyTimer);
+        }, 6000);
+        
+        return () => clearTimeout(safety);
+    }, [animState, onComplete]);
 
-    }, [hasSnapshot, finalWinner, items, clearAllTimers]);
-
-    if (items.length === 0) {
+    if (!isRolling && displayItems.length === 0) {
         return (
             <div className="w-full h-[168px] flex items-center justify-center text-white/20 text-sm">
-                No entries yet
+                Ready to roll
             </div>
         );
     }
 
     return (
-        <div ref={outerRef} className="relative w-full overflow-hidden select-none" style={{ height: 168 }}>
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none" style={{ width: ITEM_W }}>
-                <div className="absolute inset-0 rounded-xl ring-2 ring-red-500/60 bg-red-500/5" />
+        <div ref={containerRef} className="relative w-full overflow-hidden select-none" style={{ height: 168 }}>
+            {/* Center indicator */}
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ width: ITEM_WIDTH }}>
+                <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${isWinnerHighlighted ? 'ring-4 ring-red-500 bg-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.6)]' : 'ring-2 ring-red-500/60 bg-red-500/5'}`} />
             </div>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderTop: '15px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderBottom: '15px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
-            <div ref={stripRef} className="absolute top-0 bottom-0 flex items-center" style={{ gap: GAP, willChange: 'transform' }}>
-                {items.map((item, idx) => {
-                    const isWinner = highlightIdx === idx;
+            
+            {/* Arrows */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderTop: '16px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderBottom: '16px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
+            
+            {/* Strip */}
+            <div 
+                ref={stripRef} 
+                className="absolute top-0 bottom-0 flex items-center will-change-transform"
+                style={{ gap: GAP, left: 0 }}
+            >
+                {displayItems.map((item) => {
+                    const isHighlighted = isWinnerHighlighted && item.isWinner;
                     return (
-                        <div key={item._key} style={{ width: ITEM_W, flexShrink: 0, height: 148 }}
-                            className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl transition-all duration-300 ${isWinner ? 'bg-red-500/40 ring-2 ring-red-400 scale-105 shadow-[0_0_32px_rgba(239,68,68,0.8)]' : 'bg-white/5 opacity-60'}`}>
+                        <div 
+                            key={item._id} 
+                            style={{ width: ITEM_WIDTH, flexShrink: 0, height: 148 }}
+                            className={`flex flex-col items-center justify-center gap-2 p-2 rounded-xl transition-all duration-300 ${isHighlighted ? 'bg-red-500/40 ring-2 ring-red-400 scale-105 shadow-[0_0_32px_rgba(239,68,68,0.8)] z-10' : 'bg-white/5'}`}
+                        >
                             <div className="relative flex-shrink-0" style={{ width: 80, height: 80 }}>
-                                <div className="w-full h-full rounded-full overflow-hidden ring-2 ring-white/20">
+                                <div className={`w-full h-full rounded-full overflow-hidden ring-2 transition-all duration-300 ${isHighlighted ? 'ring-red-400' : 'ring-white/20'}`}>
                                     <UserAvatar src={item.avatar} alt={item.user} className="w-full h-full" />
                                 </div>
+                                {isHighlighted && (
+                                    <motion.div 
+                                        initial={{ scale: 0 }} 
+                                        animate={{ scale: 1 }} 
+                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs"
+                                    >
+                                        👑
+                                    </motion.div>
+                                )}
                             </div>
-                            <span className={`text-[11px] font-bold truncate w-full text-center leading-tight px-1 ${isWinner ? 'text-white' : 'text-white/60'}`}>{item.user}</span>
+                            <span className={`text-[11px] font-bold truncate w-full text-center leading-tight px-1 transition-colors ${isHighlighted ? 'text-white' : 'text-white/60'}`}>
+                                {item.user}
+                            </span>
                         </div>
                     );
                 })}
             </div>
+            
+            {/* Edge fades */}
             <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
             <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
         </div>
@@ -535,14 +413,25 @@ const COLORS    = ['#FF0000','#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','
 
 const generateBot = (id) => {
     const name = BOT_NAMES[id % BOT_NAMES.length] + Math.floor(Math.random() * 999);
-    return { id: `bot-${id}-${Date.now()}`, user: name, text: '', color: COLORS[Math.floor(Math.random() * COLORS.length)], avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`, badges: [{ type: 'bot', text: 'BOT' }], timestamp: Date.now(), isBot: true, isSubscriber: Math.random() > 0.7, isModerator: false };
+    return { 
+        id: `bot-${id}-${Date.now()}`, 
+        user: name, 
+        text: '', 
+        color: COLORS[Math.floor(Math.random() * COLORS.length)], 
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`, 
+        badges: [{ type: 'bot', text: 'BOT' }], 
+        timestamp: Date.now(), 
+        isBot: true, 
+        isSubscriber: Math.random() > 0.7, 
+        isModerator: false 
+    };
 };
 
 const KICK_CHANNEL   = 'zynkogambles';
 const PUSHER_KEY     = '32cbd69e4b950bf97679';
 const PUSHER_CLUSTER = 'us2';
 
-// ── Avatar cache (module-level, survives re-renders) ─────────────────────────
+// ── Avatar cache (module-level) ─────────────────────────
 const avatarCache = new Map();
 
 // ── fetchKickAvatar ───────────────────────────────────────────────────────────
@@ -609,6 +498,9 @@ export default function Picker() {
     const [rollCount, setRollCount]       = useState(0);
     const [isTestMode, setIsTestMode]     = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    
+    // Key to force remount of slot machine between rolls
+    const [rollKey, setRollKey] = useState(0);
 
     const chatContainerRef = useRef(null);
     const wsRef            = useRef(null);
@@ -616,20 +508,31 @@ export default function Picker() {
     const pingInterval     = useRef(null);
     const passwordInputRef = useRef(null);
     const autoPickTimerRef = useRef(null);
+    const pickingLockRef   = useRef(false);
 
+    // Scroll chat to bottom
     useEffect(() => {
         if (chatContainerRef.current)
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }, [messages]);
 
+    // Focus password input
     useEffect(() => {
         if (!isAuthenticated && passwordInputRef.current) passwordInputRef.current.focus();
     }, [isAuthenticated]);
 
+    // Auto-pick timer
     useEffect(() => {
-        if (autoPick && participants.length > 0 && !isPicking && !winner)
-            autoPickTimerRef.current = setTimeout(handlePickWinner, autoPickDelay * 1000);
-        return () => clearTimeout(autoPickTimerRef.current);
+        if (autoPickTimerRef.current) {
+            clearTimeout(autoPickTimerRef.current);
+            autoPickTimerRef.current = null;
+        }
+        
+        if (autoPick && participants.length > 0 && !isPicking && !winner) {
+            autoPickTimerRef.current = setTimeout(() => {
+                if (!isPicking && !winner) handlePickWinner();
+            }, autoPickDelay * 1000);
+        }
     }, [autoPick, participants.length, isPicking, winner, autoPickDelay]);
 
     // ── WebSocket connection ─────────────────────────────────────────────────
@@ -639,7 +542,6 @@ export default function Picker() {
 
         const connect = async () => {
             try {
-                // ── Get channel info: proxy first, direct as fallback ─────────
                 let channelData = { avatar: null, username: KICK_CHANNEL, viewerCount: 0, isLive: false, chatroomId: null };
                 try {
                     const proxyRes = await fetch(`/api/kick/channel?username=${KICK_CHANNEL}`);
@@ -651,7 +553,6 @@ export default function Picker() {
                     console.warn('Proxy unavailable:', proxyErr.message);
                 }
 
-                // If still no chatroomId, try direct (works in some environments)
                 let chatroomId = channelData.chatroomId;
                 if (!chatroomId) {
                     try {
@@ -670,17 +571,16 @@ export default function Picker() {
                             }
                         }
                     } catch (directErr) {
-                        console.warn('Direct fetch also failed:', directErr.message);
+                        console.warn('Direct fetch failed:', directErr.message);
                     }
                 }
 
-                if (!chatroomId) throw new Error('Cannot reach Kick API — check network');
+                if (!chatroomId) throw new Error('Cannot reach Kick API');
 
                 setChannelInfo(channelData);
                 setViewerCount(channelData.viewerCount || 0);
                 setIsLive(channelData.isLive || false);
 
-                // Cache channel owner avatar
                 if (channelData.avatar) avatarCache.set(KICK_CHANNEL, channelData.avatar);
 
                 ws = new WebSocket(`wss://ws-${PUSHER_CLUSTER}.pusher.com:443/app/${PUSHER_KEY}?protocol=7&client=js&version=8.4.0&flash=false`);
@@ -694,29 +594,32 @@ export default function Picker() {
                         const eventData = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
 
                         if (eventName === 'pusher:connection_established') {
-                            ws.send(JSON.stringify({ event: 'pusher:subscribe', data: { auth: '', channel: `chatrooms.${chatroomId}.v2` } }));
+                            ws.send(JSON.stringify({ 
+                                event: 'pusher:subscribe', 
+                                data: { auth: '', channel: `chatrooms.${chatroomId}.v2` } 
+                            }));
                         }
+                        
                         if (eventName === 'pusher_internal:subscription_succeeded') {
                             setConnectionStatus('Connected');
                             pingInterval.current = setInterval(() => {
-                                if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ event: 'pusher:ping', data: {} }));
+                                if (ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({ event: 'pusher:ping', data: {} }));
+                                }
                             }, 60000);
                         }
+                        
                         if (eventName === 'pusher:ping') {
                             ws.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
                         }
 
-                        if (
-                            eventName === 'App\\Events\\ChatMessageSentEvent' ||
-                            eventName === 'App\\Events\\ChatMessageEvent'
-                        ) {
+                        if (eventName === 'App\\Events\\ChatMessageSentEvent' || eventName === 'App\\Events\\ChatMessageEvent') {
                             const messageData = eventData.message || eventData;
                             const userData    = eventData.sender  || eventData.user;
                             if (!userData) return;
 
                             const username = userData.username || userData.slug || 'Unknown';
 
-                            // Badges
                             const badges = [];
                             (userData.identity?.badges || []).forEach(b => {
                                 const t = (b.type || '').toLowerCase();
@@ -726,40 +629,37 @@ export default function Picker() {
                                 const t = b.toLowerCase();
                                 if (!badges.some(x => x.type === t)) badges.push({ type: t, text: b, count: null });
                             });
-                            if (username === KICK_CHANNEL && !badges.some(x => x.type === 'broadcaster'))
+                            if (username === KICK_CHANNEL && !badges.some(x => x.type === 'broadcaster')) {
                                 badges.unshift({ type: 'broadcaster', text: 'Broadcaster', count: null });
+                            }
                             if (userData.isSuperAdmin) badges.push({ type: 'admin', text: 'Staff', count: null });
 
                             const text = messageData.content || messageData.message || '';
-
-                            // Extract avatar with fallback chain
                             const inlineAvatar = extractAvatar(userData);
                             
-                            // Cache immediately if available
                             if (inlineAvatar && !avatarCache.has(username)) {
                                 avatarCache.set(username, inlineAvatar);
                             }
 
-                            const msgId        = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                            const msgId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                             const cachedAvatar = avatarCache.get(username) || null;
 
                             const newMsg = {
                                 id: msgId,
                                 user: username,
                                 text,
-                                color:        userData.identity?.color || '#53fc18',
-                                avatar:       inlineAvatar || cachedAvatar,
+                                color: userData.identity?.color || '#53fc18',
+                                avatar: inlineAvatar || cachedAvatar,
                                 badges,
-                                timestamp:    Date.now(),
-                                isBot:        false,
+                                timestamp: Date.now(),
+                                isBot: false,
                                 isSubscriber: userData.is_subscribed || badges.some(b => b.type === 'subscriber' || b.type === 'sub'),
-                                isModerator:  badges.some(b => b.type === 'moderator'),
+                                isModerator: badges.some(b => b.type === 'moderator'),
                             };
 
                             setMessages(prev => [...prev.slice(-199), newMsg]);
                             setTotalEntries(prev => prev + 1);
 
-                            // Only fetch if no avatar found and not already fetching
                             if (!inlineAvatar && !avatarCache.has(username)) {
                                 fetchKickAvatar(username).then(url => {
                                     if (!url || !isActive) return;
@@ -769,22 +669,29 @@ export default function Picker() {
                                 });
                             }
                         }
-                    } catch (e) { console.error('WS message error:', e); }
+                    } catch (e) { 
+                        console.error('WS message error:', e); 
+                    }
                 };
 
                 ws.onclose = () => {
                     if (!isActive) return;
                     setConnectionStatus('Disconnected');
                     clearInterval(pingInterval.current);
-                    reconnectTimeout.current = setTimeout(() => isActive && connect(), 3000);
+                    reconnectTimeout.current = setTimeout(() => {
+                        if (isActive) connect();
+                    }, 3000);
                 };
+                
                 ws.onerror = err => console.error('WS error:', err);
 
             } catch (err) {
                 console.error('Connect error:', err);
                 if (!isActive) return;
                 setConnectionStatus('Failed');
-                reconnectTimeout.current = setTimeout(() => isActive && connect(), 5000);
+                reconnectTimeout.current = setTimeout(() => {
+                    if (isActive) connect();
+                }, 5000);
             }
         };
 
@@ -797,17 +704,22 @@ export default function Picker() {
         };
     }, [isAuthenticated, isTestMode]);
 
-    // ── Participants (derived) ───────────────────────────────────────────────
+    // ── Calculate participants ───────────────────────────────────────────────
     useEffect(() => {
         const keyword = pickerKeyword.trim().toLowerCase();
-        if (!keyword) { setParticipants([]); return; }
+        if (!keyword) { 
+            setParticipants([]); 
+            return; 
+        }
+        
         const unique = new Map();
         messages.forEach(msg => {
             if (!msg.text || msg.text.trim().toLowerCase() !== keyword) return;
             if (excludeBots && msg.isBot) return;
             if (excludeModerators && msg.isModerator) return;
-            if (!allowReEntry && unique.has(msg.user)) return;
+            
             const weight = subLuck && msg.isSubscriber ? subLuckMultiplier : 1;
+            
             if (!unique.has(msg.user)) {
                 unique.set(msg.user, { ...msg, weight, entries: 1 });
             } else if (allowReEntry) {
@@ -816,68 +728,101 @@ export default function Picker() {
                 ex.weight += weight;
             }
         });
+        
         const weighted = [];
-        unique.forEach(p => { for (let i = 0; i < p.weight; i++) weighted.push({ ...p, id: `${p.id}-${i}` }); });
+        unique.forEach(p => { 
+            for (let i = 0; i < p.weight; i++) {
+                weighted.push({ ...p, _weightId: `${p.id}-${i}` }); 
+            }
+        });
+        
         setParticipants(weighted);
     }, [messages, pickerKeyword, subLuck, subLuckMultiplier, excludeBots, excludeModerators, allowReEntry]);
 
-    // Propagate updated avatar to winner when message is patched
+    // Update winner avatar when messages update
     useEffect(() => {
         if (!winner) return;
-        const updated = messages.find(m => m.user === winner.user && m.avatar);
-        if (updated?.avatar && updated.avatar !== winner.avatar)
+        const updated = messages.find(m => m.user === winner.user && m.avatar && m.avatar !== winner.avatar);
+        if (updated) {
             setWinner(prev => prev ? { ...prev, avatar: updated.avatar } : prev);
+        }
     }, [messages, winner]);
 
+    // ── PICK WINNER ───────────────────────────────────────────────────────────
     const handlePickWinner = useCallback(() => {
-        if (isPicking || participants.length === 0) return;
+        if (pickingLockRef.current) return;
+        if (isPicking) return;
+        if (participants.length === 0) return;
         
-        // Validate participants have required properties
-        const validParticipants = participants.filter(p => p && p.user);
-        if (validParticipants.length === 0) {
-            console.error('No valid participants');
+        pickingLockRef.current = true;
+        
+        const uniqueParticipants = Array.from(
+            new Map(participants.map(p => [p.user, p])).values()
+        );
+        
+        if (uniqueParticipants.length === 0) {
+            pickingLockRef.current = false;
             return;
         }
         
-        // Create eligible list from current participants
-        const eligible = Array.from(new Map(validParticipants.map(p => [p.user, p])).values());
-        const chosen = eligible[Math.floor(Math.random() * eligible.length)];
-
-        if (!chosen || !chosen.user) {
-            console.error('Invalid winner selected');
+        // Select winner
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        const selected = participants[randomIndex];
+        
+        if (!selected || !selected.user) {
+            console.error('Invalid selection');
+            pickingLockRef.current = false;
             return;
         }
 
-        // Pre-fetch avatar so wheel has it immediately
-        if (!chosen.avatar) {
-            fetchKickAvatar(chosen.user).then(url => {
-                if (!url) return;
-                setWinner(prev => prev?.user === chosen.user ? { ...prev, avatar: url } : prev);
-                setMessages(prev => prev.map(m => 
-                    m.user === chosen.user && !m.avatar ? { ...m, avatar: url } : m
-                ));
+        // Get latest avatar
+        const latestMsg = messages.find(m => m.user === selected.user);
+        const winnerWithAvatar = {
+            ...selected,
+            avatar: latestMsg?.avatar || selected.avatar
+        };
+
+        // Pre-fetch avatar if missing
+        if (!winnerWithAvatar.avatar) {
+            fetchKickAvatar(winnerWithAvatar.user).then(url => {
+                if (url) {
+                    setWinner(prev => prev?.user === winnerWithAvatar.user ? { ...prev, avatar: url } : prev);
+                }
             });
         }
 
-        setWinner(chosen);
+        // Increment roll key to force remount of slot machine
+        setRollKey(prev => prev + 1);
+        setWinner(winnerWithAvatar);
         setIsPicking(true);
         setRollCount(prev => prev + 1);
-    }, [isPicking, participants]);
+        
+        // Release lock after animation starts
+        setTimeout(() => {
+            pickingLockRef.current = false;
+        }, 100);
+    }, [isPicking, participants, messages]);
 
+    // Handle roll completion
     const handleRollComplete = useCallback(() => {
         setIsPicking(false);
     }, []);
 
     const addTestBots = useCallback(() => {
         setIsTestMode(true);
+        const newBots = [];
         for (let i = 0; i < 20; i++) {
             const bot = generateBot(i);
-            bot.text  = pickerKeyword;
+            bot.text = pickerKeyword;
+            newBots.push(bot);
+        }
+        
+        newBots.forEach((bot, i) => {
             setTimeout(() => {
                 setMessages(prev => [...prev.slice(-199), bot]);
                 setTotalEntries(prev => prev + 1);
             }, i * 100);
-        }
+        });
     }, [pickerKeyword]);
 
     const clearAll = useCallback(() => {
@@ -889,14 +834,26 @@ export default function Picker() {
         setBannedCount(0);
         setTimeoutCount(0);
         setUnbanCount(0);
+        setRollKey(prev => prev + 1);
         avatarCache.clear();
+        pickingLockRef.current = false;
     }, []);
 
     const handleLogin = useCallback((e) => {
         e.preventDefault();
-        if (passwordInput === correctPassword) { setIsAuthenticated(true); setError(''); }
-        else { setError('Incorrect Password'); setPasswordInput(''); passwordInputRef.current?.focus(); }
+        if (passwordInput === correctPassword) { 
+            setIsAuthenticated(true); 
+            setError(''); 
+        } else { 
+            setError('Incorrect Password'); 
+            setPasswordInput(''); 
+            passwordInputRef.current?.focus(); 
+        }
     }, [passwordInput, correctPassword]);
+
+    const eligibleCount = useMemo(() => 
+        new Set(participants.map(p => p.user)).size
+    , [participants]);
 
     const AppNavbar = () => (
         <nav className="fixed top-0 left-0 right-0 z-50 w-full bg-[#0a0000]/90 backdrop-blur-md text-white border-b border-red-900/30">
@@ -969,7 +926,7 @@ export default function Picker() {
                 </motion.div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-140px)]">
-                    {/* LEFT */}
+                    {/* LEFT PANEL */}
                     <div className="lg:col-span-4 flex flex-col gap-3 h-full overflow-hidden">
                         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-red-500/30 p-4 flex-shrink-0">
                             <div className="flex items-center justify-between mb-3">
@@ -1057,12 +1014,12 @@ export default function Picker() {
                         </motion.div>
                     </div>
 
-                    {/* RIGHT */}
+                    {/* RIGHT PANEL */}
                     <div className="lg:col-span-8 flex flex-col gap-3 h-full overflow-hidden">
                         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-4 gap-3 flex-shrink-0">
                             {[
                                 { icon: <UsersIcon />,   label: 'Entries',  value: totalEntries, color: 'blue' },
-                                { icon: <CheckIcon />,   label: 'Eligible', value: new Set(participants.map(p => p.user)).size, color: 'red', active: true },
+                                { icon: <CheckIcon />,   label: 'Eligible', value: eligibleCount, color: 'red', active: true },
                                 { icon: <HashIcon />,    label: 'Keyword',  value: pickerKeyword, color: 'purple', isText: true },
                                 { icon: <DiamondIcon />, label: 'Sub Luck', value: subLuck ? `${subLuckMultiplier}x` : 'OFF', color: 'pink' }
                             ].map((stat, idx) => (
@@ -1095,14 +1052,32 @@ export default function Picker() {
                             <div className="flex-1 relative flex items-center justify-center min-h-0 overflow-hidden">
                                 <AnimatePresence mode="wait">
                                     {isPicking ? (
-                                        <motion.div key="rolling" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col items-center justify-center px-4">
+                                        <motion.div 
+                                            key={`rolling-${rollKey}`} 
+                                            initial={{ opacity: 0 }} 
+                                            animate={{ opacity: 1 }} 
+                                            exit={{ opacity: 0 }} 
+                                            className="absolute inset-0 flex flex-col items-center justify-center px-4"
+                                        >
                                             <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-xs text-red-400 uppercase tracking-[0.3em] font-bold mb-6">🎰 Spinning...</motion.div>
                                             <div className="w-full">
-                                                <SlotMachineWheel isRolling={isPicking} candidates={participants} finalWinner={winner} onComplete={handleRollComplete} />
+                                                <SlotMachineWheel 
+                                                    key={rollKey}
+                                                    isRolling={isPicking} 
+                                                    candidates={participants} 
+                                                    finalWinner={winner} 
+                                                    onComplete={handleRollComplete}
+                                                    rollKey={rollKey}
+                                                />
                                             </div>
                                         </motion.div>
                                     ) : winner ? (
-                                        <motion.div key="winner" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="text-center relative z-10">
+                                        <motion.div 
+                                            key={`winner-${rollKey}`} 
+                                            initial={{ opacity: 0, scale: 0.5 }} 
+                                            animate={{ opacity: 1, scale: 1 }} 
+                                            className="text-center relative z-10"
+                                        >
                                             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-xs uppercase tracking-[0.3em] text-red-400 font-bold mb-6">Winner Is</motion.div>
                                             <div className="relative inline-block">
                                                 <motion.div
@@ -1123,7 +1098,7 @@ export default function Picker() {
                                         <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-white/30">
                                             <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity }} className="w-32 h-32 rounded-full bg-white/5 mx-auto mb-4 flex items-center justify-center ring-2 ring-white/10"><TrophyIcon /></motion.div>
                                             <p className="text-lg font-bold">Ready to pick winner</p>
-                                            <p className="text-sm text-white/40 mt-1">{new Set(participants.map(p => p.user)).size} eligible</p>
+                                            <p className="text-sm text-white/40 mt-1">{eligibleCount} eligible</p>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -1146,7 +1121,7 @@ export default function Picker() {
 
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1a1a1a]/80 backdrop-blur-sm rounded-xl border border-white/10 p-3 flex-shrink-0">
                             <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase font-bold"><UsersIcon /> Eligible Participants ({new Set(participants.map(p => p.user)).size})</div>
+                                <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase font-bold"><UsersIcon /> Eligible Participants ({eligibleCount})</div>
                                 {subLuck && <div className="text-[10px] text-purple-400">Subs have {subLuckMultiplier}x luck</div>}
                             </div>
                             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -1173,7 +1148,7 @@ export default function Picker() {
                             <TrophyIcon />
                             {isPicking
                                 ? <span className="flex items-center gap-2"><motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>⟳</motion.span>Rolling...</span>
-                                : `Pick Winner (${new Set(participants.map(p => p.user)).size})`
+                                : `Pick Winner (${eligibleCount})`
                             }
                         </motion.button>
                     </div>

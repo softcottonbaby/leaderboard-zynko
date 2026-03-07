@@ -127,7 +127,7 @@ export default function Home() {
             loading="eager"
           />
           <p className="text-[#E2E2E2] text-lg md:text-xl font-medium leading-snug tracking-wide text-center drop-shadow-sm">
-            csdrop.com<br />
+            ruxbet.com<br />
             Leaderboards, Exclusive Bonuses & More!
           </p>
           <div className="flex gap-4 mt-6">

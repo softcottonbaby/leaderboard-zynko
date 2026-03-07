@@ -2,33 +2,19 @@ import React, { useEffect, useState, useRef, useCallback, useMemo, memo } from "
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- SITE CONFIGURATION ---
-// Only Ruxbet for now - easy to add more later
 const SITES = {
   ruxbet: {
     id: 'ruxbet',
     name: 'Ruxbet',
     logo: '/ruxbet/ruxbetlogo.png',
-    apiEndpoint: '/api/ruxbet-leaderboard?code=zynko',
+    apiEndpoint: '/api/ruxbet-leaderboard', // Your proxy endpoint
+    campaignCode: 'zynko', // Campaign code to filter by
     prizes: { 1: 250, 2: 125, 3: 60, 4: 30, 5: 15, 6: 10, 7: 5 },
-    accentColor: 'rgba(0, 255, 47, 0.95)', // Green for Ruxbet
+    accentColor: 'rgba(0, 255, 47, 0.95)',
     coinIcon: '/ruxbet/usdcoin.png',
-    endDate: '2026-03-09T23:59:59Z',
     totalPrize: '500',
     theme: 'green'
   }
-  // Add more sites here in the future:
-  // newSite: {
-  //   id: 'newsite',
-  //   name: 'New Site',
-  //   logo: '/newsite/logo.png',
-  //   apiEndpoint: '/api/newsite-leaderboard',
-  //   prizes: { 1: 100, 2: 50, 3: 25 },
-  //   accentColor: 'rgba(239, 68, 68, 0.95)',
-  //   coinIcon: '/newsite/coin.png',
-  //   endDate: '2026-12-31T23:59:59Z',
-  //   totalPrize: '175',
-  //   theme: 'red'
-  // }
 };
 
 const Counter = memo(({ from = 0, to, fractionDigits = 0, duration = 1000 }) => {
@@ -182,12 +168,12 @@ const SiteTab = memo(({ site, isActive, onClick }) => {
 SiteTab.displayName = 'SiteTab';
 
 export default function Leaderboard() {
-  // Default to ruxbet since it's the only one now
   const [activeSiteId, setActiveSiteId] = useState('ruxbet');
   const [players, setPlayers] = useState([]);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [endDate, setEndDate] = useState(null); // Dynamic end date from API
 
   const activeSite = SITES[activeSiteId];
   const intervalRef = useRef(null);
@@ -211,17 +197,21 @@ export default function Leaderboard() {
       let processedPlayers = [];
       
       if (activeSiteId === 'ruxbet') {
-        // v2.0 API response format: { leaderboards: [...] }
-        const leaderboardData = data.leaderboards?.[0];
-        const standings = leaderboardData?.standings || [];
+        // API returns: { name, endsAt, standings: [{position, username, wageredUsd, prizeUsd}] }
+        const standings = data.standings || [];
         
-        processedPlayers = standings.map((p, idx) => ({
-          id: `ruxbet-${idx}-${Date.now()}`,
+        // Update end date from API
+        if (data.endsAt) {
+          setEndDate(data.endsAt);
+        }
+        
+        processedPlayers = standings.map((p) => ({
+          id: `ruxbet-${p.position}-${p.username || 'anon'}`,
           username: p.username || "Anonymous",
           avatar: "/default-avatar.png",
           wageredAmount: parseFloat(p.wageredUsd) || 0,
-          rank: p.position || idx + 1,
-          reward: p.prizeUsd ? `${p.prizeUsd}` : "-"
+          rank: p.position, // API uses 'position', not 'rank'
+          reward: p.prizeUsd !== null && p.prizeUsd !== undefined ? `${p.prizeUsd}` : "-"
         }));
       } else {
         // Generic handler for future sites
@@ -268,10 +258,13 @@ export default function Leaderboard() {
   }, [fetchLeaderboard, activeSiteId]);
 
   useEffect(() => {
-    if (!activeSite?.endDate) return;
-    const endDate = new Date(activeSite.endDate);
+    // Use API endDate if available, otherwise fallback to static config
+    const targetDate = endDate || activeSite?.endDate;
+    if (!targetDate) return;
+    
+    const endDateObj = new Date(targetDate);
     const updateCountdown = () => {
-      const diff = endDate - new Date();
+      const diff = endDateObj - new Date();
       if (diff <= 0) { 
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 }); 
         if (countdownRef.current) clearInterval(countdownRef.current); 
@@ -289,7 +282,7 @@ export default function Leaderboard() {
     return () => { 
       if (countdownRef.current) clearInterval(countdownRef.current); 
     };
-  }, [activeSite?.endDate]);
+  }, [endDate, activeSite?.endDate]); // Depend on dynamic endDate
 
   const filledPlayers = useMemo(() => {
     const totalSlots = 11;
@@ -331,7 +324,6 @@ export default function Leaderboard() {
         </nav>
 
         <section className="w-full max-w-5xl px-4 text-white">
-          {/* Site Switcher - Shows even with 1 site for future expansion */}
           <div className="mb-10">
             <p className="text-center text-xs uppercase tracking-wider text-white/50 mb-4">Select Leaderboard</p>
             <div className="flex justify-center gap-4 md:gap-6 bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-fit mx-auto flex-wrap">
@@ -374,9 +366,9 @@ export default function Leaderboard() {
       <footer className="w-full bg-[#0a0a0a] border-t border-[#3b82f6]/20 pt-8 pb-6 relative z-20 mt-auto">
         <div className="max-w-screen-xl mx-auto flex flex-col items-center justify-center text-center px-4">
           <div className="flex gap-6 mb-4">
-            <a href="https://www.youtube.com/@zynko333/featured" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all"><img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5 filter brightness-0 invert" loading="lazy" /></a>
-            <a href="https://kick.com/zynkogambles" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all"><img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert" loading="lazy" /></a>
-            <a href="https://discord.gg/zynko" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all"><img src="/icons/discord.webp" alt="Discord" className="w-5 h-5 filter brightness-0 invert" loading="lazy" /></a>
+            <a href="https://www.youtube.com/@zynko333/featured " target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all"><img src="/icons/youtube.webp" alt="YouTube" className="w-5 h-5 filter brightness-0 invert" loading="lazy" /></a>
+            <a href="https://kick.com/zynkogambles " target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all"><img src="/icons/kick.png" alt="Kick" className="w-5 h-5 filter brightness-0 invert" loading="lazy" /></a>
+            <a href="https://discord.gg/zynko " target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#3b82f6]/10 flex items-center justify-center hover:bg-[#3b82f6]/30 transition-all"><img src="/icons/discord.webp" alt="Discord" className="w-5 h-5 filter brightness-0 invert" loading="lazy" /></a>
           </div>
           <p className="text-white/70 text-xs">&copy; 2025 All rights reserved</p>
         </div>
