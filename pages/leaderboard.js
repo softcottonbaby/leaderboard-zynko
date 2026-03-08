@@ -206,13 +206,13 @@ export default function Leaderboard() {
         }
         
         processedPlayers = standings.map((p) => ({
-          id: `ruxbet-${p.position}-${p.username || 'anon'}`,
-          username: p.username || "Anonymous",
-          avatar: "/default-avatar.png",
-          wageredAmount: parseFloat(p.wageredUsd) || 0,
-          rank: p.position, // API uses 'position', not 'rank'
-          reward: p.prizeUsd !== null && p.prizeUsd !== undefined ? `${p.prizeUsd}` : "-"
-        }));
+  id: `ruxbet-${p.position}-${p.username || 'anon'}`,
+  username: p.username || "Anonymous",
+  avatar: "/ruxbet/ruxbetpfp.png",  // ← Your custom image for all real players
+  wageredAmount: parseFloat(p.wageredUsd) || 0,
+  rank: p.position,
+  reward: p.prizeUsd !== null && p.prizeUsd !== undefined ? `${p.prizeUsd}` : "-"
+}));
       } else {
         // Generic handler for future sites
         const rawList = data.rankings || data.standings || [];

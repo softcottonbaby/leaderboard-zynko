@@ -149,34 +149,50 @@ const KickBadge = memo(({ badge }) => {
 });
 KickBadge.displayName = 'KickBadge';
 
-// ── UserAvatar ────────────────────────────────────────────────────────────────
+// ── FIXED UserAvatar with external CORS proxy ─────────────────────────────────
 const UserAvatar = memo(({ src, alt, className }) => {
     const [error, setError] = useState(false);
+    const [imgSrc, setImgSrc] = useState(null);
     
-    useEffect(() => { setError(false); }, [src]);
+    useEffect(() => { 
+        setError(false);
+        if (src) {
+            let processed = src;
+            // Fix protocol-relative URLs
+            if (src.startsWith('//')) {
+                processed = 'https:' + src;
+            }
+            // Use external CORS proxy for Kick images
+            if (processed.includes('cloudfront.net') || processed.includes('kick.com')) {
+                // Using images.weserv.nl as a reliable CORS proxy
+                processed = `https://images.weserv.nl/?url=${encodeURIComponent(processed)}&n=-1`;
+            }
+            setImgSrc(processed);
+        } else {
+            setImgSrc(null);
+        }
+    }, [src]);
     
-    const isValidSrc = src && typeof src === 'string' && (
-        src.startsWith('http://') || 
-        src.startsWith('https://') ||
-        src.startsWith('data:image')
-    );
+    const getInitials = (name) => {
+        if (!name) return '?';
+        return name.charAt(0).toUpperCase();
+    };
     
-    if (error || !isValidSrc) {
+    if (error || !imgSrc) {
         return (
-            <div className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-sm font-bold text-white/50`}>
-                {alt?.charAt(0).toUpperCase() || '?'}
+            <div className={`${className} bg-gradient-to-br from-red-900 to-red-700 flex items-center justify-center text-sm font-bold text-white ring-2 ring-white/10`}>
+                {getInitials(alt)}
             </div>
         );
     }
     
     return (
         <img 
-            src={src} 
+            src={imgSrc} 
             alt={alt} 
             className={`${className} object-cover`} 
             loading="lazy" 
             onError={() => setError(true)}
-            referrerPolicy="no-referrer"
         />
     );
 });
@@ -209,8 +225,6 @@ const ChatMessage = memo(({ msg, isEntry }) => {
 ChatMessage.displayName = 'ChatMessage';
 
 // ── FIXED SLOT MACHINE ────────────────────────────────────────────────────────
-// CRITICAL FIX: Use a module-level Set to track which rollKeys have started
-// This persists across StrictMode's double mount/unmount cycles
 const startedRolls = new Set();
 
 const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete, rollKey }) => {
@@ -225,17 +239,14 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
     const GAP = 14;
     const TOTAL_ITEM_WIDTH = ITEM_WIDTH + GAP;
 
-    // Generate items and check if we should start animation
     useEffect(() => {
         if (!isRolling || !finalWinner) return;
         
-        // CRITICAL: Check if this rollKey has already started (StrictMode protection)
         if (startedRolls.has(rollKey)) {
             console.log('Roll already started, skipping duplicate');
             return;
         }
         
-        // Mark this roll as started immediately
         startedRolls.add(rollKey);
         
         const uniqueCandidates = Array.from(
@@ -247,7 +258,6 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
             return;
         }
 
-        // Generate items with winner at fixed position
         const items = [];
         const winnerPos = 40;
         const totalItems = 55;
@@ -265,16 +275,13 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
         setDisplayItems(items);
         setAnimState('ready');
         
-        // Cleanup function - remove from started rolls after animation completes or component unmounts
         return () => {
-            // Don't remove immediately - let it timeout
             setTimeout(() => {
                 startedRolls.delete(rollKey);
             }, 10000);
         };
     }, [rollKey, isRolling, finalWinner, candidates, onComplete]);
 
-    // Run animation when items are ready
     useEffect(() => {
         if (animState !== 'ready' || !stripRef.current || !containerRef.current) return;
         
@@ -285,35 +292,26 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
         const containerWidth = container.offsetWidth;
         const centerOffset = (containerWidth - ITEM_WIDTH) / 2;
         
-        // Calculate final position (winner centered)
         const finalX = centerOffset - (winnerPos * TOTAL_ITEM_WIDTH);
-        
-        // Start from right side (offscreen)
         const startX = centerOffset + (containerWidth / 2) + (ITEM_WIDTH * 2);
         
-        // Set initial position without transition
         strip.style.transition = 'none';
         strip.style.transform = `translate3d(${startX}px, 0, 0)`;
         
-        // Force reflow
         void strip.offsetWidth;
         
-        // Start animation in next frame
         const rafId = requestAnimationFrame(() => {
             if (!strip) return;
             
             setAnimState('rolling');
             
-            // Single smooth animation to winner
             strip.style.transition = 'transform 3.5s cubic-bezier(0.1, 0.7, 0.1, 1)';
             strip.style.transform = `translate3d(${finalX}px, 0, 0)`;
             
-            // Highlight winner at end
             const highlightTimer = setTimeout(() => {
                 setIsWinnerHighlighted(true);
             }, 3500);
             
-            // Complete animation
             const completeTimer = setTimeout(() => {
                 setAnimState('complete');
                 onComplete();
@@ -328,7 +326,6 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
         return () => cancelAnimationFrame(rafId);
     }, [animState, onComplete, rollKey]);
 
-    // Safety timeout
     useEffect(() => {
         if (animState !== 'rolling') return;
         
@@ -354,16 +351,13 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
 
     return (
         <div ref={containerRef} className="relative w-full overflow-hidden select-none" style={{ height: 168 }}>
-            {/* Center indicator */}
             <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" style={{ width: ITEM_WIDTH }}>
                 <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${isWinnerHighlighted ? 'ring-4 ring-red-500 bg-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.6)]' : 'ring-2 ring-red-500/60 bg-red-500/5'}`} />
             </div>
             
-            {/* Arrows */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderTop: '16px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 pointer-events-none" style={{ width: 0, height: 0, borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderBottom: '16px solid #ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,1))' }} />
             
-            {/* Strip */}
             <div 
                 ref={stripRef} 
                 className="absolute top-0 bottom-0 flex items-center will-change-transform"
@@ -399,7 +393,6 @@ const SlotMachineWheel = memo(({ isRolling, candidates, finalWinner, onComplete,
                 })}
             </div>
             
-            {/* Edge fades */}
             <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
             <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#1a1a1a] to-transparent z-10 pointer-events-none" />
         </div>
@@ -434,37 +427,22 @@ const PUSHER_CLUSTER = 'us2';
 // ── Avatar cache (module-level) ─────────────────────────
 const avatarCache = new Map();
 
-// ── fetchKickAvatar ───────────────────────────────────────────────────────────
-async function fetchKickAvatar(username) {
-    if (!username) return null;
-    if (avatarCache.has(username)) return avatarCache.get(username);
-    
-    try {
-        const res = await fetch(`/api/kick/channel?username=${encodeURIComponent(username)}`);
-        if (!res.ok) throw new Error('proxy error');
-        const data = await res.json();
-        
-        const url = data.avatar && typeof data.avatar === 'string' && data.avatar.startsWith('http') 
-            ? data.avatar 
-            : null;
-            
-        avatarCache.set(username, url);
-        return url;
-    } catch (err) {
-        console.error(`Failed to fetch avatar for ${username}:`, err);
-        avatarCache.set(username, null);
-        return null;
-    }
-}
-
-// Extract avatar from multiple possible locations in WebSocket data
+// ── FIXED: Extract avatar from WebSocket data ──────────────────────────────
 const extractAvatar = (userData) => {
-    return userData.profilepic || 
-           userData.profile_picture || 
-           userData.profile_image ||
-           userData.avatar ||
-           userData.identity?.avatar ||
-           null;
+    if (!userData) return null;
+    
+    // According to Kick docs, avatar is in profilepic or profile_thumb
+    const avatarUrl = userData.profilepic || userData.profile_thumb || null;
+    
+    if (avatarUrl && typeof avatarUrl === 'string') {
+        // Fix protocol-relative URLs
+        if (avatarUrl.startsWith('//')) {
+            return 'https:' + avatarUrl;
+        }
+        return avatarUrl;
+    }
+    
+    return null;
 };
 
 export default function Picker() {
@@ -499,7 +477,6 @@ export default function Picker() {
     const [isTestMode, setIsTestMode]     = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     
-    // Key to force remount of slot machine between rolls
     const [rollKey, setRollKey] = useState(0);
 
     const chatContainerRef = useRef(null);
@@ -510,18 +487,15 @@ export default function Picker() {
     const autoPickTimerRef = useRef(null);
     const pickingLockRef   = useRef(false);
 
-    // Scroll chat to bottom
     useEffect(() => {
         if (chatContainerRef.current)
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }, [messages]);
 
-    // Focus password input
     useEffect(() => {
         if (!isAuthenticated && passwordInputRef.current) passwordInputRef.current.focus();
     }, [isAuthenticated]);
 
-    // Auto-pick timer
     useEffect(() => {
         if (autoPickTimerRef.current) {
             clearTimeout(autoPickTimerRef.current);
@@ -535,53 +509,59 @@ export default function Picker() {
         }
     }, [autoPick, participants.length, isPicking, winner, autoPickDelay]);
 
-    // ── WebSocket connection ─────────────────────────────────────────────────
+    // ── FIXED WebSocket connection with avatar extraction ─────────────────
     useEffect(() => {
         if (!isAuthenticated || isTestMode) return;
         let isActive = true, ws = null;
 
         const connect = async () => {
             try {
-                let channelData = { avatar: null, username: KICK_CHANNEL, viewerCount: 0, isLive: false, chatroomId: null };
+                let channelData = { 
+                    avatar: null, 
+                    username: KICK_CHANNEL, 
+                    viewerCount: 0, 
+                    isLive: false, 
+                    chatroomId: null 
+                };
+                
+                // Try to fetch channel info for avatar
                 try {
-                    const proxyRes = await fetch(`/api/kick/channel?username=${KICK_CHANNEL}`);
-                    if (proxyRes.ok) {
-                        const d = await proxyRes.json();
-                        if (!d.error) channelData = d;
-                    }
-                } catch (proxyErr) {
-                    console.warn('Proxy unavailable:', proxyErr.message);
-                }
-
-                let chatroomId = channelData.chatroomId;
-                if (!chatroomId) {
-                    try {
-                        const directRes = await fetch(`https://kick.com/api/v2/channels/${KICK_CHANNEL}`, {
-                            headers: { 'Accept': 'application/json' },
-                            credentials: 'omit',
-                        });
-                        if (directRes.ok) {
-                            const d = await directRes.json();
-                            chatroomId = d.chatroom?.id || null;
-                            if (!channelData.avatar) {
-                                channelData.avatar = d.user?.profilepic || d.user?.profile_picture || d.user?.avatar || null;
-                                channelData.username = d.user?.username || KICK_CHANNEL;
-                                channelData.viewerCount = d.livestream?.viewer_count || 0;
-                                channelData.isLive = !!d.livestream;
-                            }
+                    const res = await fetch(`https://kick.com/api/v2/channels/${KICK_CHANNEL}`, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'omit',
+                    });
+                    
+                    if (res.ok) {
+                        const d = await res.json();
+                        channelData = {
+                            avatar: d.user?.profilepic || d.user?.profile_picture || d.user?.avatar || null,
+                            username: d.user?.username || KICK_CHANNEL,
+                            viewerCount: d.livestream?.viewer_count || 0,
+                            isLive: !!d.livestream,
+                            chatroomId: d.chatroom?.id || null,
+                        };
+                        
+                        // Fix avatar URL if needed
+                        if (channelData.avatar && channelData.avatar.startsWith('//')) {
+                            channelData.avatar = 'https:' + channelData.avatar;
                         }
-                    } catch (directErr) {
-                        console.warn('Direct fetch failed:', directErr.message);
                     }
+                } catch (err) {
+                    console.warn('Failed to fetch channel info:', err);
                 }
 
-                if (!chatroomId) throw new Error('Cannot reach Kick API');
+                const chatroomId = channelData.chatroomId;
+                if (!chatroomId) {
+                    throw new Error('Could not get chatroom ID');
+                }
 
                 setChannelInfo(channelData);
                 setViewerCount(channelData.viewerCount || 0);
                 setIsLive(channelData.isLive || false);
 
-                if (channelData.avatar) avatarCache.set(KICK_CHANNEL, channelData.avatar);
+                if (channelData.avatar) {
+                    avatarCache.set(KICK_CHANNEL, channelData.avatar);
+                }
 
                 ws = new WebSocket(`wss://ws-${PUSHER_CLUSTER}.pusher.com:443/app/${PUSHER_KEY}?protocol=7&client=js&version=8.4.0&flash=false`);
                 wsRef.current = ws;
@@ -615,41 +595,43 @@ export default function Picker() {
 
                         if (eventName === 'App\\Events\\ChatMessageSentEvent' || eventName === 'App\\Events\\ChatMessageEvent') {
                             const messageData = eventData.message || eventData;
-                            const userData    = eventData.sender  || eventData.user;
+                            const userData    = eventData.sender || eventData.user;
+                            
                             if (!userData) return;
 
                             const username = userData.username || userData.slug || 'Unknown';
 
+                            // Extract badges
                             const badges = [];
                             (userData.identity?.badges || []).forEach(b => {
                                 const t = (b.type || '').toLowerCase();
                                 if (t) badges.push({ type: t, text: b.text || t, count: b.count || null });
                             });
-                            (userData.follower_badges || []).forEach(b => {
-                                const t = b.toLowerCase();
-                                if (!badges.some(x => x.type === t)) badges.push({ type: t, text: b, count: null });
-                            });
-                            if (username === KICK_CHANNEL && !badges.some(x => x.type === 'broadcaster')) {
+                            
+                            if (username.toLowerCase() === KICK_CHANNEL.toLowerCase() && !badges.some(x => x.type === 'broadcaster')) {
                                 badges.unshift({ type: 'broadcaster', text: 'Broadcaster', count: null });
                             }
+                            
                             if (userData.isSuperAdmin) badges.push({ type: 'admin', text: 'Staff', count: null });
 
                             const text = messageData.content || messageData.message || '';
-                            const inlineAvatar = extractAvatar(userData);
                             
-                            if (inlineAvatar && !avatarCache.has(username)) {
-                                avatarCache.set(username, inlineAvatar);
+                            // Extract avatar from WebSocket data
+                            let avatar = extractAvatar(userData);
+                            
+                            // Cache the avatar immediately if found
+                            if (avatar && !avatarCache.has(username)) {
+                                avatarCache.set(username, avatar);
                             }
 
                             const msgId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                            const cachedAvatar = avatarCache.get(username) || null;
 
                             const newMsg = {
                                 id: msgId,
                                 user: username,
                                 text,
                                 color: userData.identity?.color || '#53fc18',
-                                avatar: inlineAvatar || cachedAvatar,
+                                avatar: avatar || avatarCache.get(username) || null,
                                 badges,
                                 timestamp: Date.now(),
                                 isBot: false,
@@ -659,15 +641,6 @@ export default function Picker() {
 
                             setMessages(prev => [...prev.slice(-199), newMsg]);
                             setTotalEntries(prev => prev + 1);
-
-                            if (!inlineAvatar && !avatarCache.has(username)) {
-                                fetchKickAvatar(username).then(url => {
-                                    if (!url || !isActive) return;
-                                    setMessages(prev => prev.map(m => 
-                                        m.user === username && !m.avatar ? { ...m, avatar: url } : m
-                                    ));
-                                });
-                            }
                         }
                     } catch (e) { 
                         console.error('WS message error:', e); 
@@ -739,15 +712,6 @@ export default function Picker() {
         setParticipants(weighted);
     }, [messages, pickerKeyword, subLuck, subLuckMultiplier, excludeBots, excludeModerators, allowReEntry]);
 
-    // Update winner avatar when messages update
-    useEffect(() => {
-        if (!winner) return;
-        const updated = messages.find(m => m.user === winner.user && m.avatar && m.avatar !== winner.avatar);
-        if (updated) {
-            setWinner(prev => prev ? { ...prev, avatar: updated.avatar } : prev);
-        }
-    }, [messages, winner]);
-
     // ── PICK WINNER ───────────────────────────────────────────────────────────
     const handlePickWinner = useCallback(() => {
         if (pickingLockRef.current) return;
@@ -765,7 +729,6 @@ export default function Picker() {
             return;
         }
         
-        // Select winner
         const randomIndex = Math.floor(Math.random() * participants.length);
         const selected = participants[randomIndex];
         
@@ -775,35 +738,23 @@ export default function Picker() {
             return;
         }
 
-        // Get latest avatar
+        // Get latest avatar from messages
         const latestMsg = messages.find(m => m.user === selected.user);
         const winnerWithAvatar = {
             ...selected,
             avatar: latestMsg?.avatar || selected.avatar
         };
 
-        // Pre-fetch avatar if missing
-        if (!winnerWithAvatar.avatar) {
-            fetchKickAvatar(winnerWithAvatar.user).then(url => {
-                if (url) {
-                    setWinner(prev => prev?.user === winnerWithAvatar.user ? { ...prev, avatar: url } : prev);
-                }
-            });
-        }
-
-        // Increment roll key to force remount of slot machine
         setRollKey(prev => prev + 1);
         setWinner(winnerWithAvatar);
         setIsPicking(true);
         setRollCount(prev => prev + 1);
         
-        // Release lock after animation starts
         setTimeout(() => {
             pickingLockRef.current = false;
         }, 100);
     }, [isPicking, participants, messages]);
 
-    // Handle roll completion
     const handleRollComplete = useCallback(() => {
         setIsPicking(false);
     }, []);
@@ -1079,16 +1030,31 @@ export default function Picker() {
                                             className="text-center relative z-10"
                                         >
                                             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-xs uppercase tracking-[0.3em] text-red-400 font-bold mb-6">Winner Is</motion.div>
+                                            
+                                            {/* FIXED: Winner avatar with proper glow effect */}
                                             <div className="relative inline-block">
-                                                <motion.div
-                                                    animate={{ boxShadow: ['0 0 60px rgba(239,68,68,0.4)','0 0 100px rgba(239,68,68,0.6)','0 0 60px rgba(239,68,68,0.4)'] }}
-                                                    transition={{ duration: 2, repeat: Infinity }}
-                                                    className="w-40 h-40 rounded-full overflow-hidden ring-4 ring-red-500 bg-black"
-                                                >
+                                                {/* Outer glow ring */}
+                                                <div className="absolute -inset-4 rounded-full bg-red-500/30 blur-xl animate-pulse" />
+                                                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-red-600 to-red-400 opacity-60 blur-md" />
+                                                
+                                                {/* Avatar container */}
+                                                <div className="relative w-40 h-40 rounded-full overflow-hidden ring-4 ring-red-500 bg-black">
                                                     <UserAvatar src={winner.avatar} alt={winner.user} className="w-full h-full" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-red-900/50 to-transparent" />
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-red-900/50 to-transparent pointer-events-none" />
+                                                </div>
+                                                
+                                                {/* Crown badge */}
+                                                <motion.div 
+                                                    initial={{ scale: 0, rotate: -20 }} 
+                                                    animate={{ scale: 1, rotate: 0 }}
+                                                    transition={{ delay: 0.3, type: "spring" }}
+                                                    className="absolute -top-2 -right-2 w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-xl shadow-lg ring-2 ring-white/20"
+                                                >
+                                                    👑
                                                 </motion.div>
                                             </div>
+                                            
                                             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 text-4xl font-black text-white italic" style={{ textShadow: '0 0 40px rgba(239,68,68,0.6)' }}>
                                                 {winner.user}
                                             </motion.div>
