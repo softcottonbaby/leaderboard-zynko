@@ -128,12 +128,10 @@ const parseEmotes = (text) => {
 };
 
 // --- KICK REAL BADGE IMAGES ---
-// Uses Kick's actual badge CDN. Subscriber badges use their count (months/tier).
 const getKickBadgeUrl = (badge) => {
     if (!badge) return null;
     const type = (badge.type || '').toLowerCase();
 
-    // Subscriber badges include a count for tier/months
     if (type === 'subscriber' || type === 'sub') {
         const count = badge.count || 1;
         return `https://files.kick.com/channel_subscriber_badges/${count}/BADGE_IMAGE`;
@@ -173,7 +171,6 @@ const KickBadge = memo(({ badge }) => {
         );
     }
 
-    // Fallback text pill
     return (
         <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-bold uppercase leading-none bg-gray-600 text-white">
             {badge.text || badge.type}
@@ -186,11 +183,6 @@ KickBadge.displayName = 'KickBadge';
 const avatarCache = new Map();
 const avatarFetchQueue = new Set();
 
-/**
- * Fetches a Kick user's avatar via the public channel API.
- * Results are stored in avatarCache keyed by lowercase username.
- * Returns the avatar URL string or null.
- */
 const fetchKickAvatar = async (username) => {
     const key = username.toLowerCase();
     if (avatarCache.has(key)) return avatarCache.get(key);
@@ -222,7 +214,6 @@ const fetchKickAvatar = async (username) => {
     } finally {
         avatarFetchQueue.delete(key);
     }
-    // Cache null so we don't keep retrying
     avatarCache.set(key, null);
     return null;
 };
@@ -442,13 +433,38 @@ const KICK_CHANNEL   = 'zynkogambles';
 const PUSHER_KEY     = '32cbd69e4b950bf97679';
 const PUSHER_CLUSTER = 'us2';
 
+// --- SESSION STORAGE HELPERS ---
+const SESSION_MESSAGES_KEY     = 'picker_messages';
+const SESSION_TOTAL_ENTRIES_KEY = 'picker_totalEntries';
+
+const loadFromSession = (key, fallback) => {
+    try {
+        const saved = sessionStorage.getItem(key);
+        if (saved === null) return fallback;
+        return JSON.parse(saved);
+    } catch {
+        return fallback;
+    }
+};
+
+const saveToSession = (key, value) => {
+    try {
+        sessionStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        // storage full or unavailable — silently ignore
+    }
+};
+
 export default function Picker() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [passwordInput, setPasswordInput]     = useState('');
     const [error, setError]                     = useState('');
     const correctPassword = process.env.NEXT_PUBLIC_PICKER_PASSWORD || 'zynkoace';
 
-    const [messages, setMessages]                 = useState([]);
+    // ── Persist messages & totalEntries across page navigation via sessionStorage ──
+    const [messages, setMessages]     = useState(() => loadFromSession(SESSION_MESSAGES_KEY, []));
+    const [totalEntries, setTotalEntries] = useState(() => loadFromSession(SESSION_TOTAL_ENTRIES_KEY, 0));
+
     const [winner, setWinner]                     = useState(null);
     const [isPicking, setIsPicking]               = useState(false);
     const [connectionStatus, setConnectionStatus] = useState('Disconnected');
@@ -469,7 +485,6 @@ export default function Picker() {
     const [unbanCount, setUnbanCount]     = useState(0);
     const [isLive, setIsLive]             = useState(false);
     const [viewerCount, setViewerCount]   = useState(0);
-    const [totalEntries, setTotalEntries] = useState(0);
     const [rollCount, setRollCount]       = useState(0);
     const [isTestMode, setIsTestMode]     = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -482,6 +497,16 @@ export default function Picker() {
     const passwordInputRef = useRef(null);
     const autoPickTimerRef = useRef(null);
     const pickingLockRef   = useRef(false);
+
+    // ── Persist messages to sessionStorage whenever they change ──
+    useEffect(() => {
+        saveToSession(SESSION_MESSAGES_KEY, messages.slice(-200));
+    }, [messages]);
+
+    // ── Persist totalEntries to sessionStorage whenever it changes ──
+    useEffect(() => {
+        saveToSession(SESSION_TOTAL_ENTRIES_KEY, totalEntries);
+    }, [totalEntries]);
 
     useEffect(() => {
         if (chatContainerRef.current)
@@ -588,7 +613,6 @@ export default function Picker() {
                             const username = userData.username || userData.slug || 'Unknown';
                             const key      = username.toLowerCase();
 
-                            // --- Build badges from identity ---
                             const badges = [];
                             (userData.identity?.badges || []).forEach(b => {
                                 const t = (b.type || '').toLowerCase();
@@ -601,7 +625,6 @@ export default function Picker() {
 
                             const text = messageData.content || messageData.message || '';
 
-                            // --- Avatar: try WS data first, then cache, then queue API fetch ---
                             let avatar =
                                 userData.profile_pic       ||
                                 userData.profilepic        ||
@@ -611,12 +634,10 @@ export default function Picker() {
 
                             if (avatar?.startsWith('//')) avatar = 'https:' + avatar;
 
-                            // Store in cache if freshly found from WS
                             if (avatar && !avatarCache.has(key)) {
                                 avatarCache.set(key, avatar);
                             }
 
-                            // Use cache if WS gave nothing
                             if (!avatar) avatar = avatarCache.get(key) || null;
 
                             const msgId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -637,11 +658,9 @@ export default function Picker() {
                             setMessages(prev => [...prev.slice(-199), newMsg]);
                             setTotalEntries(prev => prev + 1);
 
-                            // If still no avatar, fetch from Kick API in background
                             if (!avatar && !avatarCache.has(key)) {
                                 fetchKickAvatar(username).then((fetchedAvatar) => {
                                     if (!fetchedAvatar || !isActive) return;
-                                    // Back-fill avatar into any existing messages for this user
                                     setMessages(prev =>
                                         prev.map(m =>
                                             m.user === username && !m.avatar
@@ -725,7 +744,6 @@ export default function Picker() {
         const selected = participants[Math.floor(Math.random() * participants.length)];
         if (!selected?.user) { pickingLockRef.current = false; return; }
 
-        // Grab freshest avatar from cache or messages
         const cachedAvatar  = avatarCache.get(selected.user.toLowerCase());
         const latestMsg     = messages.find(m => m.user === selected.user);
         const winnerAvatar  = cachedAvatar || latestMsg?.avatar || selected.avatar || null;
@@ -770,6 +788,11 @@ export default function Picker() {
         setRollKey(prev => prev + 1);
         avatarCache.clear();
         pickingLockRef.current = false;
+        // ── Clear persisted data from sessionStorage too ──
+        try {
+            sessionStorage.removeItem(SESSION_MESSAGES_KEY);
+            sessionStorage.removeItem(SESSION_TOTAL_ENTRIES_KEY);
+        } catch {}
     }, []);
 
     const handleLogin = useCallback((e) => {
