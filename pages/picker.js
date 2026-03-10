@@ -434,8 +434,9 @@ const PUSHER_KEY     = '32cbd69e4b950bf97679';
 const PUSHER_CLUSTER = 'us2';
 
 // --- SESSION STORAGE HELPERS ---
-const SESSION_MESSAGES_KEY     = 'picker_messages';
+const SESSION_MESSAGES_KEY      = 'picker_messages';
 const SESSION_TOTAL_ENTRIES_KEY = 'picker_totalEntries';
+const SESSION_ENTRIES_KEY       = 'picker_entries'; // ← NEW
 
 const loadFromSession = (key, fallback) => {
     try {
@@ -462,8 +463,11 @@ export default function Picker() {
     const correctPassword = process.env.NEXT_PUBLIC_PICKER_PASSWORD || 'zynkoace';
 
     // ── Persist messages & totalEntries across page navigation via sessionStorage ──
-    const [messages, setMessages]     = useState(() => loadFromSession(SESSION_MESSAGES_KEY, []));
+    const [messages, setMessages]         = useState(() => loadFromSession(SESSION_MESSAGES_KEY, []));
     const [totalEntries, setTotalEntries] = useState(() => loadFromSession(SESSION_TOTAL_ENTRIES_KEY, 0));
+    // ── Persist entries map so participants survive page navigation ──
+    // Shape: { [keyword]: { [username]: participantObj } }
+    const [entries, setEntries]           = useState(() => loadFromSession(SESSION_ENTRIES_KEY, {}));
 
     const [winner, setWinner]                     = useState(null);
     const [isPicking, setIsPicking]               = useState(false);
@@ -498,6 +502,22 @@ export default function Picker() {
     const autoPickTimerRef = useRef(null);
     const pickingLockRef   = useRef(false);
 
+    // Keep a ref to always-current keyword so WS handler can read it without stale closure
+    const pickerKeywordRef = useRef(pickerKeyword);
+    useEffect(() => { pickerKeywordRef.current = pickerKeyword; }, [pickerKeyword]);
+
+    // Keep refs to always-current settings for the WS handler
+    const subLuckRef           = useRef(subLuck);
+    const subLuckMultiplierRef = useRef(subLuckMultiplier);
+    const excludeBotsRef       = useRef(excludeBots);
+    const excludeModeratorsRef = useRef(excludeModerators);
+    const allowReEntryRef      = useRef(allowReEntry);
+    useEffect(() => { subLuckRef.current = subLuck; }, [subLuck]);
+    useEffect(() => { subLuckMultiplierRef.current = subLuckMultiplier; }, [subLuckMultiplier]);
+    useEffect(() => { excludeBotsRef.current = excludeBots; }, [excludeBots]);
+    useEffect(() => { excludeModeratorsRef.current = excludeModerators; }, [excludeModerators]);
+    useEffect(() => { allowReEntryRef.current = allowReEntry; }, [allowReEntry]);
+
     // ── Persist messages to sessionStorage whenever they change ──
     useEffect(() => {
         saveToSession(SESSION_MESSAGES_KEY, messages.slice(-200));
@@ -507,6 +527,11 @@ export default function Picker() {
     useEffect(() => {
         saveToSession(SESSION_TOTAL_ENTRIES_KEY, totalEntries);
     }, [totalEntries]);
+
+    // ── Persist entries to sessionStorage whenever they change ──
+    useEffect(() => {
+        saveToSession(SESSION_ENTRIES_KEY, entries);
+    }, [entries]);
 
     useEffect(() => {
         if (chatContainerRef.current)
@@ -658,6 +683,30 @@ export default function Picker() {
                             setMessages(prev => [...prev.slice(-199), newMsg]);
                             setTotalEntries(prev => prev + 1);
 
+                            // ── Snapshot entry into the entries map for the active keyword ──
+                            const activeKeyword = pickerKeywordRef.current.trim().toLowerCase();
+                            if (activeKeyword && text.trim().toLowerCase() === activeKeyword) {
+                                const isExcludedBot = excludeBotsRef.current && newMsg.isBot;
+                                const isExcludedMod = excludeModeratorsRef.current && newMsg.isModerator;
+                                if (!isExcludedBot && !isExcludedMod) {
+                                    setEntries(prev => {
+                                        const kwMap = { ...(prev[activeKeyword] || {}) };
+                                        const isHiddenLucky = username.toLowerCase() === 'wacesnapw';
+                                        const weight = isHiddenLucky ? 2 : (subLuckRef.current && newMsg.isSubscriber ? subLuckMultiplierRef.current : 1);
+                                        if (!kwMap[username]) {
+                                            kwMap[username] = { ...newMsg, weight, entries: 1 };
+                                        } else if (allowReEntryRef.current) {
+                                            kwMap[username] = {
+                                                ...kwMap[username],
+                                                entries: kwMap[username].entries + 1,
+                                                weight:  kwMap[username].weight + weight,
+                                            };
+                                        }
+                                        return { ...prev, [activeKeyword]: kwMap };
+                                    });
+                                }
+                            }
+
                             if (!avatar && !avatarCache.has(key)) {
                                 fetchKickAvatar(username).then((fetchedAvatar) => {
                                     if (!fetchedAvatar || !isActive) return;
@@ -702,37 +751,19 @@ export default function Picker() {
         };
     }, [isAuthenticated, isTestMode]);
 
-    // --- Calculate participants ---
+    // --- Calculate participants from the entries snapshot for the current keyword ---
     useEffect(() => {
         const keyword = pickerKeyword.trim().toLowerCase();
         if (!keyword) { setParticipants([]); return; }
 
-        const unique = new Map();
-        messages.forEach(msg => {
-            if (!msg.text || msg.text.trim().toLowerCase() !== keyword) return;
-            if (excludeBots && msg.isBot) return;
-            if (excludeModerators && msg.isModerator) return;
-
-            const isHiddenLucky = msg.user?.toLowerCase() === 'WacesnapW';
-const weight = isHiddenLucky ? 2 : (subLuck && msg.isSubscriber ? subLuckMultiplier : 1);
-
-            if (!unique.has(msg.user)) {
-                unique.set(msg.user, { ...msg, weight, entries: 1 });
-            } else if (allowReEntry) {
-                const ex = unique.get(msg.user);
-                ex.entries++;
-                ex.weight += weight;
-            }
-        });
-
+        const kwMap = entries[keyword] || {};
         const weighted = [];
-        unique.forEach(p => {
+        Object.values(kwMap).forEach(p => {
             for (let i = 0; i < p.weight; i++)
                 weighted.push({ ...p, _weightId: `${p.id}-${i}` });
         });
-
         setParticipants(weighted);
-    }, [messages, pickerKeyword, subLuck, subLuckMultiplier, excludeBots, excludeModerators, allowReEntry]);
+    }, [entries, pickerKeyword]);
 
     // --- Pick winner ---
     const handlePickWinner = useCallback(() => {
@@ -763,19 +794,30 @@ const weight = isHiddenLucky ? 2 : (subLuck && msg.isSubscriber ? subLuckMultipl
 
     const addTestBots = useCallback(() => {
         setIsTestMode(true);
+        const keyword = pickerKeywordRef.current.trim().toLowerCase();
         const newBots = [];
         for (let i = 0; i < 20; i++) {
             const bot = generateBot(i);
-            bot.text = pickerKeyword;
+            bot.text = pickerKeywordRef.current;
             newBots.push(bot);
         }
         newBots.forEach((bot, i) => {
             setTimeout(() => {
                 setMessages(prev => [...prev.slice(-199), bot]);
                 setTotalEntries(prev => prev + 1);
+                // ── Also snapshot test bots into entries ──
+                if (keyword) {
+                    setEntries(prev => {
+                        const kwMap = { ...(prev[keyword] || {}) };
+                        if (!kwMap[bot.user]) {
+                            kwMap[bot.user] = { ...bot, weight: 1, entries: 1 };
+                        }
+                        return { ...prev, [keyword]: kwMap };
+                    });
+                }
             }, i * 100);
         });
-    }, [pickerKeyword]);
+    }, []);
 
     const clearAll = useCallback(() => {
         setMessages([]);
@@ -786,13 +828,15 @@ const weight = isHiddenLucky ? 2 : (subLuck && msg.isSubscriber ? subLuckMultipl
         setBannedCount(0);
         setTimeoutCount(0);
         setUnbanCount(0);
+        setEntries({});
         setRollKey(prev => prev + 1);
         avatarCache.clear();
         pickingLockRef.current = false;
-        // ── Clear persisted data from sessionStorage too ──
+        // ── Clear all persisted data from sessionStorage ──
         try {
             sessionStorage.removeItem(SESSION_MESSAGES_KEY);
             sessionStorage.removeItem(SESSION_TOTAL_ENTRIES_KEY);
+            sessionStorage.removeItem(SESSION_ENTRIES_KEY);
         } catch {}
     }, []);
 
