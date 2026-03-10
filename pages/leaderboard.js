@@ -200,7 +200,9 @@ export default function Leaderboard() {
         // API returns: { name, endsAt, standings: [{position, username, wageredUsd, prizeUsd}] }
         const standings = data.standings || [];
         
-        setEndDate('2026-03-21T23:59:59Z');
+        if (data.endsAt) {
+  setEndDate(data.endsAt);
+}
         
         processedPlayers = standings.map((p) => ({
   id: `ruxbet-${p.position}-${p.username || 'anon'}`,
